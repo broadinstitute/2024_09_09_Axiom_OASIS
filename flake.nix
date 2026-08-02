@@ -57,26 +57,30 @@
         };
       in
       {
-        # Default shell: R + snakemake from Nix, Python from pixi.
+        # Default shell: R from Nix, Python and snakemake from pixi.
         # On NixOS, conda-provided R has problems with system() calls, so R comes
         # from Nix rather than from a pixi environment.
+        #
+        # snakemake deliberately does NOT come from Nix: requirements.txt pins
+        # snakemake==7.32.4, nixpkgs ships 9.x, and the nixpkgs build currently
+        # fails to evaluate anyway (its python3.14-stopit dependency is marked
+        # broken). Taking it from pixi honours the pin.
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
             pixi
             rEnv
-            snakemake
             awscli2
           ];
 
           shellHook = ''
             echo "2024_09_09_Axiom_OASIS - reproduction environment"
             echo ""
-            echo "  R + snakemake + awscli : from Nix (this shell)"
-            echo "  Python                 : pixi run -e pipeline / -e notebooks"
+            echo "  R + awscli : from Nix (this shell)"
+            echo "  Python     : pixi run -e pipeline / -e notebooks"
             echo ""
             echo "Pipeline runs from 1_snakemake/ (R scripts source ./concresponse/*.R):"
             echo "  cd 1_snakemake"
-            echo "  snakemake --configfile inputs/conf/cpcnn.json --cores 32 -n"
+            echo "  pixi run -e pipeline snakemake --configfile inputs/conf/cpcnn.json --cores 32 -n"
             echo ""
             # fastbmdR is baked into the Nix R env; stop the .R scripts from
             # attempting install.packages()/install_github() inside snakemake jobs.
