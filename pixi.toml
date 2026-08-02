@@ -55,6 +55,10 @@ cupy = "*"
 [feature.pipeline.pypi-dependencies]
 # Pinned per requirements.txt. Not taken from nixpkgs, which ships 9.x.
 snakemake = "==7.32.4"
+# Load-bearing transitive: snakemake 7.32.4 calls pulp.list_solvers but only
+# declares pulp>=2.0, so a fresh solve grabs pulp 3.x, which renamed it to
+# listSolvers -- snakemake then dies on `--help`. requirements.txt pinned 2.7.0.
+pulp = "==2.7.0"
 pandas = "==2.2.2"
 polars = "==0.20.0"
 pyarrow = "==14.0.1"

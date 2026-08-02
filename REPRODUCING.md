@@ -120,10 +120,29 @@ Each is a separate commit on this branch.
 
 ## Verified so far
 
-- Nix R environment builds and all eleven packages load: dplyr, arrow,
+- **R environment.** All eleven packages load under R 4.6.1: dplyr, arrow,
   ggplot2, ggforce, reshape2, foreach, doParallel, data.table, stringr, drc,
   fastbmdR. `arrow::arrow_info()` reports Parquet support TRUE, and fastbmdR
   exports the four functions the pipeline calls (`scoresPOD`,
   `PerformCurveFitting`, `PerformBMDCalc`, `FilterDRFit`).
-- `cellprofiler_raw.parquet` downloaded and MD5-verified against Zenodo
-  (413,433,180 bytes, md5 prefix 0cf2b9d11268).
+
+- **Python environment.** numpy 1.24.4, pandas 2.2.2, polars 0.20.0,
+  pyarrow 14.0.1, scikit-learn 1.5.2, xgboost 2.1.1, pycytominer 1.2.0,
+  snakemake 7.32.4, copairs 0.5.4. numpy resolves to 1.24.4 rather than
+  requirements.txt's 1.24.3 because it is solved by conda (cupy pulls it in);
+  recorded as a deviation.
+
+- **GPU.** cupy 13.6.0 sees all four H100s and computes on each;
+  `XGBClassifier(device="cuda:0")` fits successfully. This is the code path
+  `classifier/classify.py` uses.
+
+- **Data.** All five Zenodo inputs downloaded and MD5-verified:
+  cellprofiler_raw 413,433,180 / dino_raw 399,927,644 / cpcnn_raw 48,201,019 /
+  metadata 734,477 / index 2,524,798 bytes.
+
+- **DAG.** `snakemake --configfile inputs/conf/cellprofiler.json -n` resolves
+  cleanly to 24 jobs with no missing inputs, covering every rule from
+  compute_negcon_stats through the four classifiers, the four curve PDFs and
+  umaps.pdf. The restored `rule all` reaches all 17 targets.
+
+Not yet run: the pipeline itself, and the notebooks.
