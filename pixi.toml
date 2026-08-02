@@ -1,13 +1,26 @@
 ## Python environments for reproducing paper 1A.
 ##
-## Two environments, because the repo needs two incompatible polars versions:
-##   - pipeline  : 1_snakemake/preprocessing/stats.py and 0_prepare_data/2E use
-##                 pl.DataFrame.melt, which polars removed in 1.x  -> polars 0.20.0
-##   - notebooks : 1_3_compare_pods, SI_compare_processing and
-##                 other_notebooks/05 use pl.DataFrame.unpivot,
-##                 which requires polars >= 1.0
-## A single polars version cannot run both. This is a defect in the published
-## repo, not a packaging preference.
+## Two environments, because the repo mixes two incompatible polars API
+## generations. No single polars version runs everything; no single notebook
+## needs both, so a two-environment split covers all of it without editing
+## any notebook.
+##
+##   pipeline   polars 0.20.0   melt / pl.count() / pivot(columns=)
+##     1_snakemake/preprocessing/stats.py
+##     0_prepare_data/2E_format_image_index.py
+##     manuscript_notebooks/2_1_predict_continuous_assays.ipynb  <- writes err_*_targets.csv
+##     manuscript_notebooks/3_1_toxcast_endpoints.ipynb
+##     other_notebooks/01_checkwelleffects.ipynb
+##
+##   notebooks  polars >=1.0    unpivot / pivot(on=)
+##     manuscript_notebooks/1_3_compare_pods.ipynb
+##     manuscript_notebooks/3_2_3_compare_endpoints_detail.ipynb
+##     manuscript_notebooks/SI_compare_processing.ipynb
+##     other_notebooks/05_compare_pods_transforms.ipynb
+##
+## This is a defect in the published repo, not a packaging preference: the
+## pinned polars==0.20.0 in requirements.txt cannot run the four notebooks in
+## the second group.
 ##
 ## R, snakemake and awscli come from the Nix flake, not from here.
 ## Python pins follow requirements.txt (which is a flattened export of a
