@@ -11,4 +11,5 @@ inputs/profiles
 inputs/annotations/invitrodb
 .RData
 .RHistory
-.tabbenchmarks
+.tab
+benchmarks
