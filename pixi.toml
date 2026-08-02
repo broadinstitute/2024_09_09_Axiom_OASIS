@@ -37,15 +37,24 @@ platforms = ["linux-64"]
 # ---------------------------------------------------------------------------
 [feature.pipeline.dependencies]
 python = "3.11.*"
+# numpy is solved by conda, not pypi: cupy is a conda package and drags numpy
+# in with it, so a pypi numpy pin loses to the conda solve. Pinning here keeps
+# requirements.txt's 1.24.3 and lets the solver pick a cupy built against it.
+numpy = "1.24.*"
 # classifier/classify.py hardcodes num_gpus = 4 and calls cp.cuda.Device().
 # cupy is imported but absent from requirements.txt.
+#
+# No upper bound needed: CUDA minor-version compatibility lets a 12.9 runtime
+# run on the 12.7-capable driver (565.57.01). What matters is that the flake
+# puts /run/opengl-driver/lib on LD_LIBRARY_PATH so cupy links the host
+# driver's libcuda.so rather than a conda stub -- without that you get
+# cudaErrorInsufficientDriver regardless of how cuda-version is pinned.
 cuda-version = "12.*"
 cupy = "*"
 
 [feature.pipeline.pypi-dependencies]
 # Pinned per requirements.txt. Not taken from nixpkgs, which ships 9.x.
 snakemake = "==7.32.4"
-numpy = "==1.24.3"
 pandas = "==2.2.2"
 polars = "==0.20.0"
 pyarrow = "==14.0.1"

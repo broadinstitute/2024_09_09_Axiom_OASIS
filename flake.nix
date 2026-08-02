@@ -13,7 +13,13 @@
   outputs = { self, nixpkgs, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = import nixpkgs { inherit system; };
+        pkgs = import nixpkgs {
+          inherit system;
+          config = {
+            allowUnfree = true;
+            nvidia.acceptLicense = true;
+          };
+        };
 
         # fastbmdR ships a DESCRIPTION with no Imports/Depends fields, so
         # remotes::install_github() installs it with none of its dependencies.
@@ -86,6 +92,10 @@
             # attempting install.packages()/install_github() inside snakemake jobs.
             export R_LIBS_USER=/dev/null
           '';
+
+          # cupy and the GPU xgboost build need the host driver's libcuda.so,
+          # which on NixOS lives here rather than on the default loader path.
+          LD_LIBRARY_PATH = "/run/opengl-driver/lib";
         };
       });
 }

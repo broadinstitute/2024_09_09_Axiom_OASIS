@@ -112,3 +112,18 @@ Each is a separate commit on this branch.
 - **Orphan artifacts.** `compiled_results/motive_highexp_PHH.parquet` and
   `inputs/annotations/motive_binary.parquet` are referenced by no code in the
   repo.
+
+- **R version drift.** The flake resolves to R 4.6.1, considerably newer than
+  the 2024-era R the original work would have used. Nothing in the repo or its
+  history pins an R version, so there is no target to match; this is recorded
+  as a known deviation rather than a fixable one.
+
+## Verified so far
+
+- Nix R environment builds and all eleven packages load: dplyr, arrow,
+  ggplot2, ggforce, reshape2, foreach, doParallel, data.table, stringr, drc,
+  fastbmdR. `arrow::arrow_info()` reports Parquet support TRUE, and fastbmdR
+  exports the four functions the pipeline calls (`scoresPOD`,
+  `PerformCurveFitting`, `PerformBMDCalc`, `FilterDRFit`).
+- `cellprofiler_raw.parquet` downloaded and MD5-verified against Zenodo
+  (413,433,180 bytes, md5 prefix 0cf2b9d11268).
