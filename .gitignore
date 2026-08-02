@@ -173,3 +173,9 @@ to_do.txt
 
 XX_preprocessing/output/standardized_smilesXX_preprocessing/output/refchemdb_jump.csv
 XX_preprocessing/output/refchemdb_inchikey.csv
+
+# Nix / pixi
+.pixi/
+.direnv/
+result
+result-*
