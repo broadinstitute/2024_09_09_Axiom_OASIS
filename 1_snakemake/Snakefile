@@ -15,10 +15,34 @@ features = config["features"]
 
 rule all:
      input:
-          #f"outputs/{features}/{name}/classifier_results/axiom_continuous_predictions.parquet",
-          #f"outputs/{features}/{name}/curves/plots/cp_plots.pdf"
-          #f"outputs/{features}/{name}/classifier_results/axiom_binary_predictions.parquet",
-          #f"outputs/{features}/{name}/classifier_results/toxcast_cellfree_binary_predictions.parquet",
-          #f"outputs/{features}/{name}/classifier_results/toxcast_cellbased_binary_predictions.parquet",
-          #f"outputs/{features}/{name}/classifier_results/toxcast_cytotox_binary_predictions.parquet",
-          f"outputs/{features}/{name}/profiles/mad_featselect.parquet"
+          # Preprocessed profiles. Uses {scenario} (the config's `workflow`), not a
+          # hardcoded "mad_featselect": with a *_int.json config the old literal
+          # requested a file that config's own workflow never builds.
+          f"outputs/{features}/{name}/profiles/{scenario}.parquet",
+
+          # Dose-response. Feeds SI_tables/*.csv via 4_1_results_tables_SI.ipynb
+          # and notebooks 1_2, 1_3, SI_compare_processing.
+          f"outputs/{features}/{name}/curves/bmds.parquet",
+          f"outputs/{features}/{name}/curves/ccpods.parquet",
+          f"outputs/{features}/{name}/curves/mttpods.parquet",
+          f"outputs/{features}/{name}/curves/ldhpods.parquet",
+          f"outputs/{features}/{name}/curves/pods.parquet",
+
+          # Classifier. The four *_binary_predictions files feed
+          # compiled_*_metrics.parquet via 3_2_0_assay_metrics.ipynb; the
+          # continuous predictions feed err_*_targets.csv (2_1) and
+          # mtt_*_targets.csv (2_2).
+          f"outputs/{features}/{name}/aggregated_profiles/agg.parquet",
+          f"outputs/{features}/{name}/classifier_results/axiom_binary_predictions.parquet",
+          f"outputs/{features}/{name}/classifier_results/axiom_continuous_predictions.parquet",
+          f"outputs/{features}/{name}/classifier_results/toxcast_cellbased_binary_predictions.parquet",
+          f"outputs/{features}/{name}/classifier_results/toxcast_cellfree_binary_predictions.parquet",
+          f"outputs/{features}/{name}/classifier_results/toxcast_cytotox_binary_predictions.parquet",
+
+          # Figures. Previously unreachable: only cp_plots.pdf was listed (commented
+          # out), and nothing ever requested visualize.smk's umaps.pdf at all.
+          f"outputs/{features}/{name}/curves/plots/cc_plots.pdf",
+          f"outputs/{features}/{name}/curves/plots/mtt_plots.pdf",
+          f"outputs/{features}/{name}/curves/plots/ldh_plots.pdf",
+          f"outputs/{features}/{name}/curves/plots/cp_plots.pdf",
+          f"outputs/{features}/{name}/figures/umaps.pdf",
