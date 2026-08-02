@@ -21,7 +21,7 @@ rule int:
     output:
         f"outputs/{features}/{name}/profiles/{{pipeline}}_int.parquet",
     run:
-        pp.select_features(*input, *output)
+        pp.transform.rank_int(*input, *output)
 
 
 rule featselect:
