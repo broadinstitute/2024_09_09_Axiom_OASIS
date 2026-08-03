@@ -237,22 +237,18 @@ Each is a separate commit on this branch.
    out, and the surviving one hardcoded `mad_featselect` instead of `{scenario}`.
    `visualize.smk` was included but never requested by anything.
 
-4. **`refchemdb_oasis.parquet`**. Deleted in `defa7fd` but still read by
-   `2_2_outlier_enrichment_analysis.ipynb`; no script regenerates it. Recovered
-   from `defa7fd^`.
-
-5. **Notebook paths**. The five non-`Plot_images` notebooks in `other_notebooks/`
+4. **Notebook paths**. The five non-`Plot_images` notebooks in `other_notebooks/`
    plus four cells in `2_1` and `2_2` used paths one directory level too shallow.
 
-6. **polars API split**. See the table in `pixi.toml`. Handled by environment
+5. **polars API split**. See the table in `pixi.toml`. Handled by environment
    separation rather than by editing notebooks.
 
-7. **Deterministic distance-table order** (`concresponse/compile_dist.py`).
+6. **Deterministic distance-table order** (`concresponse/compile_dist.py`).
    Polars `unique()` and `pivot()` emitted the same values in a different row order on each process.
    The R curve fitter sorts only by concentration, so replicates at the same concentration reached `nls` in that arbitrary order and changed convergence, selected models and POD pass calls.
    The compiler now preserves input order while deduplicating, orders distance columns, and sorts rows by the complete pivot key before writing Parquet.
 
-8. **Endpoint-category comparison** (`3_2_1_compare_endpoint_types.ipynb`).
+7. **Endpoint-category comparison** (`3_2_1_compare_endpoint_types.ipynb`).
    Its "Redo after filtering by compound number" section also filtered `Metadata_Label` with `.str.contains("_AR")`, despite the notebook question and facet labels covering four endpoint categories.
    That reduced the Axiom-cytotoxicity, ToxCast-cytotoxicity, ToxCast-cell-based, and ToxCast-cell-free groups from 9/69/696/6 rows to 0/0/36/0; `groupby(observed=False)` then passed empty categorical groups to `mixedlm`.
    The unrelated label filter is removed, the notebook requires all four categories to be nonempty, and the models iterate observed groups only.
@@ -563,6 +559,11 @@ Still failing, documented rather than patched:
   of `Metadata_Perturbation`, and guessing wrong would put incorrect numbers
   into `mtt_higher_targets.csv` / `mtt_lower_targets.csv`, which are
   verification artifacts. Left unrepaired deliberately.
+  A later dead cell also reads the deleted `refchemdb_oasis.parquet` and builds
+  a `refchemdb` table that no subsequent cell consumes; every
+  `overrepresentation_analysis` call uses `targets` from `cg_motive.parquet`.
+  The input remains deleted because neither the in-scope reproduction nor any
+  produced artifact uses it.
 - `01_checkwelleffects`: `KeyError: 'Metadata_ldh_ridge_norm'` at the pivot in
   cell 13, although the column is float64 with 21426 non-null values in the
   source profile -- an earlier transform in the notebook drops it. Exploratory
