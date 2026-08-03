@@ -11,5 +11,7 @@ rule make_umaps:
         f"outputs/{features}/{name}/curves/mttpods.parquet",
     output:
         f"outputs/{features}/{name}/figures/umaps.pdf",
+    benchmark:
+        f"benchmarks/{features}/{name}/make_umaps.tsv"
     run:
         vs.umaps.make_umaps(*input, *output)

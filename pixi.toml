@@ -1,0 +1,128 @@
+## Python environments for reproducing paper 1A.
+##
+## Two environments, because the repo mixes two incompatible polars API
+## generations. No single polars version runs everything; no single notebook
+## needs both, so a two-environment split covers all of it without editing
+## any notebook.
+##
+##   pipeline   polars 0.20.0   melt / pl.count() / pivot(columns=)
+##     1_snakemake/preprocessing/stats.py
+##     0_prepare_data/2E_format_image_index.py
+##     manuscript_notebooks/2_1_predict_continuous_assays.ipynb  <- writes err_*_targets.csv
+##     manuscript_notebooks/3_1_toxcast_endpoints.ipynb
+##     other_notebooks/01_checkwelleffects.ipynb
+##
+##   notebooks  polars >=1.0    unpivot / pivot(on=)
+##     manuscript_notebooks/1_3_compare_pods.ipynb
+##     manuscript_notebooks/3_2_3_compare_endpoints_detail.ipynb
+##     manuscript_notebooks/SI_compare_processing.ipynb
+##     other_notebooks/05_compare_pods_transforms.ipynb
+##
+## This is a defect in the published repo, not a packaging preference: the
+## pinned polars==0.20.0 in requirements.txt cannot run the four notebooks in
+## the second group.
+##
+## R, snakemake and awscli come from the Nix flake, not from here.
+## Python pins follow requirements.txt (which is a flattened export of a
+## since-deleted environment.yml; that file pinned python 3.9.19 while
+## install_env.sh uses 3.11 -- we follow install_env.sh, the surviving spec).
+
+[workspace]
+name = "axiom-oasis-1a"
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+# ---------------------------------------------------------------------------
+# pipeline: runs 1_snakemake
+# ---------------------------------------------------------------------------
+[feature.pipeline.dependencies]
+python = "3.11.*"
+# numpy is solved by conda, not pypi: cupy is a conda package and drags numpy
+# in with it, so a pypi numpy pin loses to the conda solve. Pinning here keeps
+# requirements.txt's 1.24.3 and lets the solver pick a cupy built against it.
+numpy = "1.24.*"
+# classifier/classify.py hardcodes num_gpus = 4 and calls cp.cuda.Device().
+# cupy is imported but absent from requirements.txt.
+#
+# No upper bound needed: CUDA minor-version compatibility lets a 12.9 runtime
+# run on the 12.7-capable driver (565.57.01). What matters is that the flake
+# puts /run/opengl-driver/lib on LD_LIBRARY_PATH so cupy links the host
+# driver's libcuda.so rather than a conda stub -- without that you get
+# cudaErrorInsufficientDriver regardless of how cuda-version is pinned.
+cuda-version = "12.*"
+cupy = "*"
+
+[feature.pipeline.pypi-dependencies]
+# Pinned per requirements.txt. Not taken from nixpkgs, which ships 9.x.
+snakemake = "==7.32.4"
+# Load-bearing transitive: snakemake 7.32.4 calls pulp.list_solvers but only
+# declares pulp>=2.0, so a fresh solve grabs pulp 3.x, which renamed it to
+# listSolvers -- snakemake then dies on `--help`. requirements.txt pinned 2.7.0.
+pulp = "==2.7.0"
+# 0_prepare_data/4A_download_compiled_inputs.py imports requests. It is
+# currently satisfied transitively, but nothing declares it, so a fresh solve
+# could drop it and break the documented data step.
+requests = "==2.32.4"
+pandas = "==2.2.2"
+polars = "==0.20.0"
+pyarrow = "==14.0.1"
+scikit-learn = "==1.5.2"
+scipy = "==1.13.1"
+statsmodels = "==0.14.3"
+xgboost = "==2.1.1"
+pycytominer = "==1.2.0"
+scanpy = "==1.10.3"
+anndata = "==0.10.9"
+umap-learn = "==0.5.6"
+joblib = "==1.4.2"
+tqdm = "==4.66.5"
+matplotlib = "==3.9.2"
+seaborn = "==0.13.2"
+plotnine = "==0.13.6"
+sh = "==2.0.7"
+# concresponse/ap.py: `from copairs import map`. Absent from requirements.txt
+# and unpinned anywhere, so this version is a guess. Only the *_ap.json configs
+# reach this code path; the three manuscript configs do not.
+copairs = "*"
+# Needed to execute the notebooks assigned to this environment
+# (2_1, 3_1, 3_2_0, 01_checkwelleffects) -- they were authored against
+# polars 0.20 and must not run under the notebooks env's polars 1.x.
+nbconvert = "*"
+ipykernel = "*"
+nbformat = "*"
+
+[feature.pipeline.tasks]
+dry = "cd 1_snakemake && snakemake --configfile inputs/conf/cpcnn.json --cores 1 -n"
+
+# ---------------------------------------------------------------------------
+# notebooks: runs 2_downstream_analysis
+# ---------------------------------------------------------------------------
+[feature.notebooks.dependencies]
+python = "3.11.*"
+
+[feature.notebooks.pypi-dependencies]
+polars = ">=1.0"          # for pl.DataFrame.unpivot
+numpy = "==1.24.3"
+pandas = "==2.2.2"
+pyarrow = "==14.0.1"
+scikit-learn = "==1.5.2"
+scipy = "==1.13.1"
+statsmodels = "==0.14.3"
+scanpy = "==1.10.3"
+anndata = "==0.10.9"
+matplotlib = "==3.9.2"
+seaborn = "==0.13.2"
+plotnine = "==0.13.6"
+plotly = "==5.24.1"
+upsetplot = "==0.9.0"
+venn = "==0.1.3"
+pycytominer = "==1.2.0"
+tqdm = "==4.66.5"
+pillow = "==10.4.0"
+sh = "==2.0.7"
+jupyterlab = "*"
+ipykernel = "*"
+
+[environments]
+pipeline = ["pipeline"]
+notebooks = ["notebooks"]

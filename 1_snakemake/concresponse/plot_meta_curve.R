@@ -79,6 +79,15 @@ plot_results <- data.frame(Metadata_Log10Conc = dose)
 for (compound in cc_compounds){
   temp_pod <- cc_pods[cc_pods$Metadata_Compound == compound, ]
 
+  # A compound name can map to more than one OASIS_ID -- Vasopressin is both
+  # OASIS679 and OASIS1751 -- which makes model/b/c/d/e/f length-2 vectors and
+  # makes switch() below fail with "EXPR must be a length 1 vector".
+  # plot_cp_curve.R already guards its equivalent loop with distinct(), but that
+  # is not sufficient here because the rows differ by Metadata_OASIS_ID. Keep
+  # the first fit: plot_results is keyed by compound name and can hold only one
+  # curve per name anyway.
+  temp_pod <- temp_pod[1, ]
+
   model <- temp_pod$mod.name
   b <- temp_pod$b
   c <- temp_pod$c

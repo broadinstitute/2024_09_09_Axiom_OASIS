@@ -12,6 +12,8 @@ rule compute_distances_R:
         treatment=config["treatment"],
         categories=",".join(config["categories"]),
         distances=config["distances_R"],
+    benchmark:
+        f"benchmarks/{features}/{name}/compute_distances_R.tsv"
     shell:
         """
         for method in {params.distances}; do
@@ -27,6 +29,8 @@ rule compute_distances_python:
         expand("outputs/{features}/{name}/distances/{method}.parquet", method=config["distances_python"], features=config["features"], name=config["name"]),
     params:
         distances=config["distances_python"],
+    benchmark:
+        f"benchmarks/{features}/{name}/compute_distances_python.tsv"
     run:
         for method in config["distances_python"]:
             output_file = f"outputs/{features}/{name}/distances/{method}.parquet"
@@ -41,6 +45,8 @@ rule compile_distances:
         f"outputs/{features}/{name}/distances/distances.parquet",
     params:
         transform=config["dist_transform"],
+    benchmark:
+        f"benchmarks/{features}/{name}/compile_distances.tsv"
     run:
         input_files = list(input)
         cr.compile_dist.compile_dist(input_files, params.transform, *output)
@@ -53,6 +59,8 @@ rule fit_curves:
         f"outputs/{features}/{name}/curves/bmds.parquet",
     params:
         num_sds = config['num_sds']
+    benchmark:
+        f"benchmarks/{features}/{name}/fit_curves.tsv"
     shell:
         "Rscript concresponse/fit_curves.R {input} {output} {params.num_sds}"
 
@@ -64,6 +72,8 @@ rule fit_curves_cc:
     params:
         num_sds = config['num_sds'],
         meta_nm = "Metadata_Count_Cells"
+    benchmark:
+        f"benchmarks/{features}/{name}/fit_curves_cc.tsv"
     shell:
         "Rscript concresponse/fit_curves_meta.R {input} {output} {params.num_sds} {params.meta_nm}"
 
@@ -75,6 +85,8 @@ rule fit_curves_mtt:
     params:
         num_sds = config['num_sds'],
         meta_nm = "Metadata_mtt_normalized"
+    benchmark:
+        f"benchmarks/{features}/{name}/fit_curves_mtt.tsv"
     shell:
         "Rscript concresponse/fit_curves_meta.R {input} {output} {params.num_sds} {params.meta_nm}"
 
@@ -86,6 +98,8 @@ rule fit_curves_ldh:
     params:
         num_sds = config['num_sds'],
         meta_nm = "Metadata_ldh_abs_signal"
+    benchmark:
+        f"benchmarks/{features}/{name}/fit_curves_ldh.tsv"
     shell:
         "Rscript concresponse/fit_curves_meta.R {input} {output} {params.num_sds} {params.meta_nm}"
 
@@ -95,6 +109,8 @@ rule select_pod:
         f"outputs/{features}/{name}/curves/ccpods.parquet",
     output:
         f"outputs/{features}/{name}/curves/pods.parquet",
+    benchmark:
+        f"benchmarks/{features}/{name}/select_pod.tsv"
     shell:
         "Rscript concresponse/select_pod.R {input} {output}"
 
@@ -107,6 +123,8 @@ rule plot_cc_curve_fits:
         f"outputs/{features}/{name}/curves/plots/cc_plots.pdf",
     params:
         meta_nm = "Metadata_Count_Cells"
+    benchmark:
+        f"benchmarks/{features}/{name}/plot_cc_curve_fits.tsv"
     shell:
         "Rscript concresponse/plot_meta_curve.R {input} {output} {params.meta_nm}"
 
@@ -118,6 +136,8 @@ rule plot_mtt_curve_fits:
         f"outputs/{features}/{name}/curves/plots/mtt_plots.pdf",
     params:
         meta_nm = "Metadata_mtt_normalized"
+    benchmark:
+        f"benchmarks/{features}/{name}/plot_mtt_curve_fits.tsv"
     shell:
         "Rscript concresponse/plot_meta_curve.R {input} {output} {params.meta_nm}"
 
@@ -129,6 +149,8 @@ rule plot_ldh_curve_fits:
         f"outputs/{features}/{name}/curves/plots/ldh_plots.pdf",
     params:
         meta_nm = "Metadata_ldh_abs_signal"
+    benchmark:
+        f"benchmarks/{features}/{name}/plot_ldh_curve_fits.tsv"
     shell:
         "Rscript concresponse/plot_meta_curve.R {input} {output} {params.meta_nm}"
 
@@ -140,5 +162,7 @@ rule plot_cp_curve_fits:
         f"outputs/{features}/{name}/distances/distances.parquet",
     output:
         f"outputs/{features}/{name}/curves/plots/cp_plots.pdf",
+    benchmark:
+        f"benchmarks/{features}/{name}/plot_cp_curve_fits.tsv"
     shell:
         "Rscript concresponse/plot_cp_curve.R {input} {output}"

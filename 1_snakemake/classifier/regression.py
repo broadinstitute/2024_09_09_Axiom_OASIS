@@ -48,10 +48,18 @@ def xgboost_regression(dat: pd.DataFrame, target: str, feat_cols: list, split_gr
         pred_obs.append(pl.DataFrame({
             "Predicted": predictions,
             "Observed": y_test.values,
-            "Metadata_Plate": test_data["Metadata_Plate"].values,
-            "Metadata_Well": test_data["Metadata_Well"].values,
-            "Metadata_Compound": test_data["Metadata_Compound"].values,
-            "Metadata_OASIS_ID": test_data["Metadata_OASIS_ID"].values,
+            # .tolist(), not .values: pandas stores these as object dtype, and
+            # polars 0.20 types a numpy object array as Object, not Utf8.
+            # Writing an Object column to parquet serialises the raw Python
+            # object pointers, so the file ends up holding bytes like
+            # b'\xf0(\xf0\x05\xfa\x7f\x00\x00' -- identical on every row --
+            # instead of the plate/well/compound identifiers. That silently
+            # destroys these columns and makes any downstream join on them fail.
+            # A Python list is inferred as Utf8 correctly.
+            "Metadata_Plate": test_data["Metadata_Plate"].tolist(),
+            "Metadata_Well": test_data["Metadata_Well"].tolist(),
+            "Metadata_Compound": test_data["Metadata_Compound"].tolist(),
+            "Metadata_OASIS_ID": test_data["Metadata_OASIS_ID"].tolist(),
             "Metadata_Log10Conc": test_data["Metadata_Log10Conc"].values,
             "Variable": target,
             "Split": i,
