@@ -1,8 +1,22 @@
 # Reproducing the paper 1A results
 
-Status: in progress. This file records what had to change to make the published
-pipeline runnable, so that any difference between regenerated and committed
-results can be attributed.
+This file records what had to change to make the published pipeline runnable,
+and what the regenerated results look like next to the committed ones.
+
+**Outcome.** The pipeline reproduces. The classifier path is bit-exact:
+`AggType == "all"` matches the committed metrics on all 2709 ToxCast rows.
+PODs agree to 6-7 significant figures at the median, but ~10% diverge
+materially because model selection is discrete. Outlier enrichment reproduces
+its machinery exactly but starts from a hit list of 292 rather than 304. Both
+divergences are characterised below.
+
+**The committed code cannot have produced the committed outputs.** Four
+independent demonstrations: `rule int` raises `TypeError`, so the three `_int`
+configs never ran; `requirements.txt` omits `cupy` and `copairs` and
+under-constrains `pulp` such that snakemake will not start; `regression.py`
+writes raw object pointers into four metadata columns, so notebooks `2_1` and
+`2_2` cannot have produced their four committed CSVs; and `2_1`'s cells 4 and 5
+require two different polars versions simultaneously.
 
 ## Scope
 
@@ -15,40 +29,121 @@ environment was macOS arm64 (the deleted `environment.yml` recorded
 `prefix: /Users/jewald/miniforge3/envs/axiom`), this runs on Linux x86_64, and
 the R dependency set was never pinned by anything.
 
-First pass covers three configs: `cellprofiler.json`, `cpcnn.json`, `dino.json`.
-The full processing-variation matrix (12 configs) needed by
-`SI_compare_processing.ipynb` is a second pass.
+Covers four configs: `cellprofiler.json`, `cpcnn.json`, `dino.json`, and
+`cellprofiler_filt.json` (run to settle which one the manuscript used -- see
+below; the answer is that it does not matter).
 
-## Setup
+Not covered: the nine further runs for the `_log10`, `_int` and `_ap` variants
+that `SI_compare_processing.ipynb`, `1_3` and `05_compare_pods_transforms`
+need. Note before spending that compute that the `_int` branch could not have
+run as published, so whatever is in the committed `_int` results came from
+different code.
+
+## Running it from scratch
+
+Requires Nix with flakes, and a machine with 4 GPUs (see caveats). Roughly
+3.5 hours of wall clock for the three configs.
+
+**1. Environments.** R comes from Nix; Python and snakemake come from pixi.
+Everything below assumes you are inside the Nix shell.
 
 ```bash
-nix develop          # R + snakemake + awscli
+nix develop
 pixi install -e pipeline
-python 0_prepare_data/4A_download_compiled_inputs.py    # run from inside 0_prepare_data/
+pixi install -e notebooks
 ```
 
-Inputs come from Zenodo record 17067683 (open access, CC-BY-4.0,
-DOI 10.5281/zenodo.17067683), 0.86 GB total. That record is a complete
-substitute for scripts `1A`-`2E`. Verify against the MD5s Zenodo publishes;
-`4A` does no checksum or resume, so a truncated download yields a corrupt
-parquet silently.
+`nix develop` sets `R_LIBS_USER=/dev/null` (so the `.R` scripts cannot attempt
+runtime `install.packages`) and puts the host driver's `libcuda.so` on
+`LD_LIBRARY_PATH` (without which cupy fails with
+`cudaErrorInsufficientDriver`).
 
-Do not run `3A_download_invitrodb.sh`. It is non-functional as written (a
+**2. Data.** 0.86 GB from Zenodo record 17067683 (open access, CC-BY-4.0,
+DOI 10.5281/zenodo.17067683). This is a complete substitute for scripts
+`1A`-`2E`.
+
+```bash
+cd 0_prepare_data && python 4A_download_compiled_inputs.py && cd ..
+```
+
+`4A` has no resume and no checksum, so a truncated download yields a corrupt
+parquet with no error. Verify against the sizes and MD5 prefixes Zenodo
+publishes:
+
+```bash
+cd 1_snakemake/inputs
+for f in profiles/cellprofiler/raw.parquet profiles/dino/raw.parquet \
+         profiles/cpcnn/raw.parquet metadata/metadata.parquet images/index.parquet; do
+  printf '%-40s %12s %s\n' "$f" "$(stat -c%s "$f")" "$(md5sum "$f" | cut -c1-12)"
+done
+```
+
+Expected:
+
+| file | bytes | md5 prefix |
+| --- | ---: | --- |
+| `profiles/cellprofiler/raw.parquet` | 413433180 | `0cf2b9d11268` |
+| `profiles/dino/raw.parquet` | 399927644 | `421529eb8088` |
+| `profiles/cpcnn/raw.parquet` | 48201019 | `d79b1cebc8aa` |
+| `metadata/metadata.parquet` | 734477 | `6731b56f8f4f` |
+| `images/index.parquet` | 2524798 | `b56e249504f7` |
+
+Do **not** run `3A_download_invitrodb.sh`. It is non-functional as written (a
 `curl -O` given an argument, interactive mysql REPL lines pasted into a shell
 script, macOS/Homebrew only, and a Clowder file ID for invitrodb v4.1 that has
 likely been superseded), it wants a ~100 GB MySQL import, and its six outputs
 are already committed under `1_snakemake/inputs/annotations/`. The pipeline
 reads only the three `_binary` files.
 
-Run the pipeline once per config, from `1_snakemake/`:
+**3. Pipeline**, once per config. The working directory must be `1_snakemake/`
+because the R scripts `source()` `./concresponse/*.R` by relative path.
 
 ```bash
 cd 1_snakemake
-snakemake --configfile inputs/conf/cpcnn.json --cores 32
+for cfg in cellprofiler cpcnn dino; do
+  pixi run --manifest-path ../pixi.toml -e pipeline \
+    snakemake --configfile inputs/conf/$cfg.json --cores 4
+done
+cd ..
 ```
 
-R scripts `source()` `./concresponse/*.R` by relative path, so the working
-directory must be `1_snakemake/`.
+Use `--cores 4`, not more: no rule declares `threads:` or `resources:`, several
+rules spawn their own pools sized to the whole machine, and the four classifier
+rules each expect all 4 GPUs.
+
+**4. Notebooks.** Which environment matters -- the repo mixes two incompatible
+polars API generations (see the table in `pixi.toml`). Run in this order; the
+first three write the artifacts the rest compare against.
+
+```bash
+cd 2_downstream_analysis/manuscript_notebooks
+for nb in 3_2_0_assay_metrics 4_1_results_tables_SI 2_1_predict_continuous_assays \
+          1_2_number_active_readouts 1_2_1_cmpds_increase_mt 3_1_toxcast_endpoints \
+          3_2_1_compare_endpoint_types 3_2_2_compare_concs_reps; do
+  pixi run --manifest-path ../../pixi.toml -e pipeline \
+    jupyter nbconvert --to notebook --execute --inplace $nb.ipynb
+done
+pixi run --manifest-path ../../pixi.toml -e notebooks \
+  jupyter nbconvert --to notebook --execute --inplace 3_2_3_compare_endpoints_detail.ipynb
+cd ../other_notebooks
+for nb in 02_analyze_AR 03_analyze_ER 04_analyze_GR; do
+  pixi run --manifest-path ../../pixi.toml -e notebooks \
+    jupyter nbconvert --to notebook --execute --inplace $nb.ipynb
+done
+```
+
+Not runnable, by design or defect: `2_2` and `01_checkwelleffects` (see below);
+`1_3`, `SI_compare_processing` and `05_compare_pods_transforms` need the
+extended config matrix; `Plot_images` needs S3 TIFF downloads into PNG
+subdirectories it does not create.
+
+**5. Comparing.** The notebooks overwrite
+`2_downstream_analysis/compiled_results/`. Copy that directory aside first, or
+`git stash` after, so the committed artifacts can be diffed against the
+regenerated ones. Use `(OASIS_ID, Compound_name, Assay_Endpoint)` as the join
+key for the SI tables -- `OASIS_ID` alone is not unique (199 distinct IDs across
+220 rows in `cellcount_pods.csv`), and the CSV column is `Assay_Endpoint` with a
+capital E.
 
 ## Changes required to make it run
 
