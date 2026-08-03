@@ -132,8 +132,8 @@ lets an early failure scroll past while later notebooks succeed, which is how
 set -e
 cd 2_downstream_analysis/manuscript_notebooks
 for nb in 3_2_0_assay_metrics 4_1_results_tables_SI 2_1_predict_continuous_assays \
-          1_2_number_active_readouts 1_2_1_cmpds_increase_mt 3_1_toxcast_endpoints \
-          3_2_2_compare_concs_reps; do
+          3_2_1_compare_endpoint_types 1_2_number_active_readouts \
+          1_2_1_cmpds_increase_mt 3_1_toxcast_endpoints 3_2_2_compare_concs_reps; do
   pixi run --manifest-path ../../pixi.toml -e pipeline \
     jupyter nbconvert --to notebook --execute --inplace \
     --ExecutePreprocessor.kernel_name=python3 $nb.ipynb
@@ -149,8 +149,8 @@ for nb in 02_analyze_AR 03_analyze_ER 04_analyze_GR; do
 done
 ```
 
-Not runnable, by design or defect: `3_2_1`, `2_2` and `01_checkwelleffects`
-(see below); `1_3`, `SI_compare_processing` and `05_compare_pods_transforms`
+Not runnable, by design or defect: `2_2` and `01_checkwelleffects` (see below);
+`1_3`, `SI_compare_processing` and `05_compare_pods_transforms`
 need the extended config matrix; `Plot_images` needs S3 TIFF downloads into PNG
 subdirectories it does not create.
 
@@ -245,6 +245,11 @@ Each is a separate commit on this branch.
    Polars `unique()` and `pivot()` emitted the same values in a different row order on each process.
    The R curve fitter sorts only by concentration, so replicates at the same concentration reached `nls` in that arbitrary order and changed convergence, selected models and POD pass calls.
    The compiler now preserves input order while deduplicating, orders distance columns, and sorts rows by the complete pivot key before writing Parquet.
+
+8. **Endpoint-category comparison** (`3_2_1_compare_endpoint_types.ipynb`).
+   Its "Redo after filtering by compound number" section also filtered `Metadata_Label` with `.str.contains("_AR")`, despite the notebook question and facet labels covering four endpoint categories.
+   That reduced the Axiom-cytotoxicity, ToxCast-cytotoxicity, ToxCast-cell-based, and ToxCast-cell-free groups from 9/69/696/6 rows to 0/0/36/0; `groupby(observed=False)` then passed empty categorical groups to `mixedlm`.
+   The unrelated label filter is removed, the notebook requires all four categories to be nonempty, and the models iterate observed groups only.
 
 ## Known caveats
 
@@ -518,33 +523,31 @@ It is not specific to R versions.
 
 Run from clean, each in its assigned environment.
 
-Pass (11): `1_2`, `1_2_1`, `2_1`, `3_1`, `3_2_0`, `3_2_2`, `3_2_3`, `4_1`,
-`02_analyze_AR`, `03_analyze_ER`, `04_analyze_GR`.
+Pass (12): `1_2`, `1_2_1`, `2_1`, `3_1`, `3_2_0`, `3_2_1`, `3_2_2`,
+`3_2_3`, `4_1`, `02_analyze_AR`, `03_analyze_ER`, `04_analyze_GR`.
 
 Fixed to get there:
 
 - `regression.py` corrupt metadata columns (see defect list) -- blocked `2_1`
   and `2_2`.
-- `3_2_1` used `pn.options` in two cells that never `import plotnine as pn`,
-  while three other cells in the same notebook do have the import. Only ever
-  worked with leftover kernel state.
+- `3_2_1` had two independent clean-kernel defects: two cells used `pn.options`
+  without importing `plotnine as pn`, and its compound-count section
+  accidentally retained only labels containing `_AR`.
+  The latter contradicted the four-category question and facets; removing it
+  restores all four endpoint types.
 - `2_1` cell 4 pivots to columns named
   `Metadata_mtt_ridge_norm_Replicate_number_1`, and successfully selects them,
   but cell 5 refers to `Metadata_mtt_ridge_norm_1`. Those are two different
   polars pivot-naming conventions, so cells 4 and 5 cannot both succeed under
   any single polars version. Fixed by aliasing in cell 4.
 
-Still failing, documented rather than patched:
+After the fix, a clean pipeline-environment execution completed with code-cell execution counts 1-10 and no error outputs.
+The mixed-effects section received 9/69/696/6 rows for Axiom cytotoxicity, ToxCast cytotoxicity, ToxCast cell-based, and ToxCast cell-free.
+All four AUROC fits converged; the first three PRAUC fits converged, while the six-row ToxCast cell-free PRAUC fit reported `converged=False`.
+The figures use the observed metrics and still render all four facets, but the cell-free PRAUC post-hoc result should not be interpreted as coming from a converged model.
+Before and after hash manifests confirmed that `compiled_results/` and `SI_tables/` were unchanged.
 
-- `3_2_1_compare_endpoint_types`: fails at `smf.mixedlm` with
-  `ValueError: negative dimensions are not allowed`. Its `_AR` filter reduces
-  the endpoint group counts from 9/69/696/6 to 0/0/36/0, and pandas
-  `groupby(observed=False)` then iterates the empty `axiom_cytotox` category
-  into `mixedlm`, where Patsy fails on an empty design matrix. Deterministic:
-  the committed and the regenerated metrics produce the same empty groups.
-  Fixing the `pn` import (below) was necessary but not sufficient. An earlier
-  revision of this file listed this notebook as passing; that was wrong -- the
-  import fix was made and the notebook was never re-run to confirm.
+Still failing, documented rather than patched:
 
 - `2_2_outlier_enrichment_analysis`: cell 1 ends with
   `group_by(["Metadata_Perturbation", "Variable", "Metadata_Well",
@@ -559,7 +562,7 @@ Still failing, documented rather than patched:
   source profile -- an earlier transform in the notebook drops it. Exploratory
   only; produces no verification artifact.
 
-None of these four notebooks has ever run top-to-bottom from a clean kernel.
+Neither remaining in-scope notebook runs top-to-bottom from a clean kernel.
 
 ### Outlier enrichment (`err_*_targets.csv`, via `2_1`)
 
