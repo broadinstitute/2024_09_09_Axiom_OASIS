@@ -80,6 +80,12 @@ sh = "==2.0.7"
 # and unpinned anywhere, so this version is a guess. Only the *_ap.json configs
 # reach this code path; the three manuscript configs do not.
 copairs = "*"
+# Needed to execute the notebooks assigned to this environment
+# (2_1, 3_1, 3_2_0, 01_checkwelleffects) -- they were authored against
+# polars 0.20 and must not run under the notebooks env's polars 1.x.
+nbconvert = "*"
+ipykernel = "*"
+nbformat = "*"
 
 [feature.pipeline.tasks]
 dry = "cd 1_snakemake && snakemake --configfile inputs/conf/cpcnn.json --cores 1 -n"
