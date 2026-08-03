@@ -297,17 +297,55 @@ specific to R versions.
 
 Run from clean, each in its assigned environment.
 
-Pass (10): `1_2`, `1_2_1`, `3_1`, `3_2_0`, `3_2_2`, `3_2_3`, `4_1`,
-`02_analyze_AR`, `03_analyze_ER`, `04_analyze_GR`.
+Pass (12): `1_2`, `1_2_1`, `2_1`, `3_1`, `3_2_0`, `3_2_1`, `3_2_2`, `3_2_3`,
+`4_1`, `02_analyze_AR`, `03_analyze_ER`, `04_analyze_GR`.
 
-Failed, now fixed: `2_1`, `2_2` (Binary/Utf8 join-key mismatch from
-`regression.py`), `3_2_1` (`pn` used without `import plotnine as pn`).
+Fixed to get there:
 
-Failed, documented not fixed: `01_checkwelleffects` raises
-`KeyError: 'Metadata_ldh_ridge_norm'` at the pivot in its cell 13, although the
-column is float64 with 21426 non-null values in the source profile -- an earlier
-transform in the notebook drops it. Exploratory only; produces no verification
-artifact.
+- `regression.py` corrupt metadata columns (see defect list) -- blocked `2_1`
+  and `2_2`.
+- `3_2_1` used `pn.options` in two cells that never `import plotnine as pn`,
+  while three other cells in the same notebook do have the import. Only ever
+  worked with leftover kernel state.
+- `2_1` cell 4 pivots to columns named
+  `Metadata_mtt_ridge_norm_Replicate_number_1`, and successfully selects them,
+  but cell 5 refers to `Metadata_mtt_ridge_norm_1`. Those are two different
+  polars pivot-naming conventions, so cells 4 and 5 cannot both succeed under
+  any single polars version. Fixed by aliasing in cell 4.
+
+Still failing, documented rather than patched:
+
+- `2_2_outlier_enrichment_analysis`: cell 1 ends with
+  `group_by(["Metadata_Perturbation", "Variable", "Metadata_Well",
+  "Metadata_Plate"]).agg(...)`, which drops `Metadata_Compound`; later cells
+  select `Metadata_Compound` from that same derived frame and raise
+  `ColumnNotFoundError`. Recovering it means either re-joining or parsing it out
+  of `Metadata_Perturbation`, and guessing wrong would put incorrect numbers
+  into `mtt_higher_targets.csv` / `mtt_lower_targets.csv`, which are
+  verification artifacts. Left unrepaired deliberately.
+- `01_checkwelleffects`: `KeyError: 'Metadata_ldh_ridge_norm'` at the pivot in
+  cell 13, although the column is float64 with 21426 non-null values in the
+  source profile -- an earlier transform in the notebook drops it. Exploratory
+  only; produces no verification artifact.
+
+None of these four notebooks has ever run top-to-bottom from a clean kernel.
+
+### Outlier enrichment (`err_*_targets.csv`, via `2_1`)
+
+Shape and schema reproduce exactly: 8858 rows and the same 8 columns in both
+files. The enrichment machinery is exact --- `universe_size` is 13176 in all
+8858 rows of both, target-set definitions agree, and 6966 of 8858 `fdr` values
+are identical.
+
+The input hit list is not: `hit_list_size` is 304 in the committed file and 292
+in the reproduction, differing in every row, which reshuffles p-values and the
+top-ranked targets.
+
+This is a **second, independent divergence**, not more of the POD story:
+`predict_axiom_continuous` reads well-level profiles directly and never touches
+PODs or POD-filtered aggregates. The mechanism has not been established; it
+warrants its own investigation. `regression.py` seeds `GroupShuffleSplit`
+(`random_state=42`) but sets no seed on the XGBoost regressor.
 
 Blocked on the extended config matrix (not run): `1_3` and
 `05_compare_pods_transforms` need `mad_featselect_log10` and
