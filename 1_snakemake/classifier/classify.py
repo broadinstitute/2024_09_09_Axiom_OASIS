@@ -160,7 +160,8 @@ def predict_binary(
 
     """
     n_splits = 5
-    num_gpus = 4
+    num_gpus = cp.cuda.runtime.getDeviceCount()
+    num_workers = 4
 
     dat = pl.read_parquet(input_path)
     meta = pl.read_parquet(label_path).rename({"OASIS_ID": "Metadata_OASIS_ID"})
@@ -180,7 +181,7 @@ def predict_binary(
     pred_results = thread_map(
         lambda args: process_label_and_agg(*args, shuffle=False),
         tasks,
-        max_workers=num_gpus,
+        max_workers=num_workers,
         desc="Processing labels and agg_types",
     )
 
@@ -195,7 +196,7 @@ def predict_binary(
     null_results = thread_map(
         lambda args: process_label_and_agg(*args, shuffle=True),
         tasks,
-        max_workers=num_gpus,
+        max_workers=num_workers,
         desc="Processing labels and agg_types",
     )
 
@@ -210,7 +211,7 @@ def predict_binary(
     cc_results = thread_map(
         lambda args: process_label_and_agg(*args, cc=True),
         tasks,
-        max_workers=num_gpus,
+        max_workers=num_workers,
         desc="Processing labels and agg_types",
     )
 
