@@ -59,6 +59,10 @@ snakemake = "==7.32.4"
 # declares pulp>=2.0, so a fresh solve grabs pulp 3.x, which renamed it to
 # listSolvers -- snakemake then dies on `--help`. requirements.txt pinned 2.7.0.
 pulp = "==2.7.0"
+# 0_prepare_data/4A_download_compiled_inputs.py imports requests. It is
+# currently satisfied transitively, but nothing declares it, so a fresh solve
+# could drop it and break the documented data step.
+requests = "==2.32.4"
 pandas = "==2.2.2"
 polars = "==0.20.0"
 pyarrow = "==14.0.1"
