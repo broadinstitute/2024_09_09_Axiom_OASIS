@@ -257,6 +257,65 @@ with whatever `drc` and `fastbmdR` builds nixpkgs resolved, versus the authors'
 This bears directly on the OASIS Phase I discovery question about which POD
 methods are stable and interpretable.
 
+### `cellprofiler_filt` vs `cellprofiler`: resolved, and immaterial
+
+`inputs/conf/README.md` names `cellprofiler_filt.json` as the manuscript
+CellProfiler config, while every notebook reads
+`outputs/cellprofiler/mad_featselect/`, which only `cellprofiler.json` produces.
+Both were run to settle it.
+
+Applying `4_1`'s filter (`all.pass & SDres < 3*SDctrl`) to each:
+
+| config | bmds rows | passing filter |
+| --- | ---: | ---: |
+| committed `cellpainting_cellprofiler_pods.csv` | -- | 6965 |
+| `cellprofiler` (`mad_featselect`) | 20510 | 7161 |
+| `cellprofiler_filt` (`mad_featselect_filt`) | 20510 | 7158 |
+
+Neither matches the committed 6965, and the two differ from each other by 3 rows.
+The config choice therefore does not explain the gap; the ~200-row difference is
+the POD instability described above. The README/notebook discrepancy is real but
+has no bearing on reproduction.
+
+The comparison did expose something sharper. The two configs differ only in
+`outlier_feat_thresh` (10,000 vs an effectively unlimited 10,000,000), which
+changes the retained feature set by 4 dropped and 8 added out of ~820 -- about
+1.5%. (The count rises under the tighter threshold because `select_features`
+runs variance threshold, then the outlier drop, then correlation pruning:
+removing outlier features changes which correlated pairs survive.)
+
+That 1.5% input perturbation changes **83% of the fitted BMDs**: only 3067 of
+18453 matched (compound, endpoint) pairs have identical `bmd`, with differences
+up to 1e4.
+
+This is the same fragility as the version-drift result, measured independently
+and without changing any software: AIC-based model selection over eight families
+amplifies small input perturbations into large output changes. It is not
+specific to R versions.
+
+### Notebook execution
+
+Run from clean, each in its assigned environment.
+
+Pass (10): `1_2`, `1_2_1`, `3_1`, `3_2_0`, `3_2_2`, `3_2_3`, `4_1`,
+`02_analyze_AR`, `03_analyze_ER`, `04_analyze_GR`.
+
+Failed, now fixed: `2_1`, `2_2` (Binary/Utf8 join-key mismatch from
+`regression.py`), `3_2_1` (`pn` used without `import plotnine as pn`).
+
+Failed, documented not fixed: `01_checkwelleffects` raises
+`KeyError: 'Metadata_ldh_ridge_norm'` at the pivot in its cell 13, although the
+column is float64 with 21426 non-null values in the source profile -- an earlier
+transform in the notebook drops it. Exploratory only; produces no verification
+artifact.
+
+Blocked on the extended config matrix (not run): `1_3` and
+`05_compare_pods_transforms` need `mad_featselect_log10` and
+`mad_int_featselect`; `SI_compare_processing` additionally needs
+`mad_featselect_ap`. That is 9 further pipeline runs, and note that the `_int`
+branch could not have run as published (see defect 2). `Plot_images` needs S3
+TIFF downloads into PNG subdirectories it does not create.
+
 ### Corrected earlier suspicion
 
 An apparent dtype landmine in `4_1` -- metadata POD tables filtered with
