@@ -191,8 +191,10 @@ The gates are:
 - **PODs.** The six SI POD CSVs use `(OASIS_ID, Compound_name, Assay_Endpoint)` as the key.
   `OASIS_ID` alone is not unique, and the endpoint column has a capital E.
   Blank `OASIS_ID` values remain subject to within-file duplicate validation but do not match across inputs, following SQL and Polars join semantics.
-  At least 80% of each side's keys must match, at least 85% of matched `POD_um` values must be within 1% relative to the reference, and the median reference-relative difference must be at most `1e-5`.
+  At least 80% of each side's keys must match.
+  Of the comparable `POD_um` point estimates (matched rows where both reference and candidate values are positive), at least 85% must be within 1% relative to the reference and the median reference-relative difference must be at most `1e-5`.
   Every POD and bound must be positive and finite, with `POD_um_l <= POD_um <= POD_um_u`.
+  This validity gate is independent: a non-positive point estimate is excluded from the relative-difference statistics but still makes the comparison fail.
   Row-count drift and the fraction with relative difference above 10% are reported rather than gated.
   The approximately 0.2% row drift observed between pre-fix runs is informational run-to-run noise, not the acceptance threshold for published-versus-regenerated key drift.
   These are paper-1A acceptance gates calibrated against the locked recipe and the documented clean comparison, not portability bounds for arbitrary R or BLAS builds.

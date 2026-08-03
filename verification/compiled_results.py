@@ -539,7 +539,8 @@ def _pod_file_report(
     _append_gate(
         gate_failures,
         within_one_percent_fraction >= POD_MIN_WITHIN_ONE_PERCENT,
-        f"{filename}: {within_one_percent_fraction:.3%} of matched PODs are within 1%; minimum is 85%",
+        f"{filename}: {within_one_percent_fraction:.3%} of comparable POD point estimates are within 1%; "
+        "minimum is 85%",
     )
     median_passed = (
         median_relative_difference is not None and median_relative_difference <= POD_MAX_MEDIAN_RELATIVE_DIFFERENCE

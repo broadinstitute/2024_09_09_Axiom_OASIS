@@ -296,7 +296,9 @@ class CompiledResultsVerifierTest(unittest.TestCase):
         result = verifier.verify_compiled_results(self.reference, self.candidate)
 
         self.assertFalse(result.passed)
-        self.assertTrue(any("matched PODs are within 1%" in failure for failure in result.gate_failures))
+        self.assertTrue(
+            any("comparable POD point estimates are within 1%" in failure for failure in result.gate_failures),
+        )
 
     def test_invalid_pod_interval_fails(self) -> None:
         """Reject a lower confidence bound above the point estimate."""
