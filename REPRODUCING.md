@@ -154,13 +154,64 @@ Not runnable, by design or defect: `3_2_1`, `2_2` and `01_checkwelleffects`
 need the extended config matrix; `Plot_images` needs S3 TIFF downloads into PNG
 subdirectories it does not create.
 
-**5. Comparing.** The notebooks overwrite
-`2_downstream_analysis/compiled_results/`. Copy that directory aside first, or
-`git stash` after, so the committed artifacts can be diffed against the
-regenerated ones. Use `(OASIS_ID, Compound_name, Assay_Endpoint)` as the join
-key for the SI tables -- `OASIS_ID` alone is not unique (199 distinct IDs across
-220 rows in `cellcount_pods.csv`), and the CSV column is `Assay_Endpoint` with a
-capital E.
+**5. Comparing.** The notebooks overwrite `2_downstream_analysis/compiled_results/`.
+Copy the committed directory aside before executing them so it can serve as the reference.
+
+```bash
+reference_root=$(mktemp -d /tmp/axiom-reference.XXXXXX)
+cp -a 2_downstream_analysis/compiled_results "$reference_root/compiled_results"
+```
+
+After running the notebooks, invoke the read-only verifier from the repository root:
+
+```bash
+(
+  trap 'git checkout -- 2_downstream_analysis/compiled_results' EXIT
+  pixi run -e pipeline python -m verification.compiled_results \
+    --reference "$reference_root/compiled_results" \
+    --candidate 2_downstream_analysis/compiled_results \
+    --json-report /tmp/axiom-verification.json
+)
+```
+
+The JSON report is optional, deterministic for a given invocation, and must be outside both input directories.
+The terminal summary reports every comparison even when a gate fails.
+Exit status 0 means all gates passed, 1 means a reproducibility gate failed, and 2 means the command or an input artifact was invalid.
+The verifier rejects identical resolved input directories, missing or unreadable files, empty tables, unexpected schemas, duplicate semantic keys, invalid values, and a report path inside either input.
+
+The gates are:
+
+- **Classifier metrics.** The four Parquets must have their expected row counts: 81 Axiom, 7,209 ToxCast cell-based, 1,431 ToxCast cell-free, and 918 ToxCast cytotoxicity.
+  Their `(Metadata_AggType, Metadata_Label, Model_type, Feat_type)` key sets must match exactly.
+  AUROC, PRAUC, and both class counts must be IEEE bit-exact for the 2,709 `AggType == "all"` rows from the cell-based and cytotoxicity files.
+  Other metric payload differences are reported but do not fail the comparison.
+
+- **PODs.** The six SI POD CSVs use `(OASIS_ID, Compound_name, Assay_Endpoint)` as the key.
+  `OASIS_ID` alone is not unique, and the endpoint column has a capital E.
+  Blank `OASIS_ID` values remain subject to within-file duplicate validation but do not match across inputs, following SQL and Polars join semantics.
+  At least 80% of each side's keys must match, at least 85% of matched `POD_um` values must be within 1% relative to the reference, and the median reference-relative difference must be at most `1e-5`.
+  Every POD and bound must be positive and finite, with `POD_um_l <= POD_um <= POD_um_u`.
+  Row-count drift and the fraction with relative difference above 10% are reported rather than gated.
+  The approximately 0.2% row drift observed between pre-fix runs is informational run-to-run noise, not the acceptance threshold for published-versus-regenerated key drift.
+
+- **Hit summary.** `SI_tables/hit_summary.csv` must have unique, identical `(OASIS_ID, Compound_name)` key sets and only `Yes` or `No` hit values.
+  Hit-call agreement is reported but is not a numerical gate.
+
+- **Outlier enrichment.** Each `err_*_targets.csv` must contain exactly 8,858 unique and identical `target_set` keys, identical `target_set_size` values, and `universe_size == 13176` on every row.
+  Each input must have one positive constant `hit_list_size`, but the reference and candidate constants may differ.
+  Set sizes, overlap sizes, p-values, and FDR values must remain in valid ranges.
+  `overlap_hits` is parsed using the produced sample-ID grammar and compared as an unordered set, including compound names that contain commas.
+  Hit-list, overlap, p-value, and FDR differences are diagnostic; the report records their exact agreement counts.
+
+The default comparison deliberately excludes `mtt_higher_targets.csv`, `mtt_lower_targets.csv`, the orphaned `motive_highexp_PHH.parquet`, and static `SI_tables/readme.txt`.
+
+The validated committed-versus-regenerated comparison returned exit status 0.
+All four metric row and key sets matched, and all 2,709 core ToxCast rows were bit-exact.
+The six POD tables matched 198, 375, 127, 6,087, 472, and 3,029 keys respectively; bidirectional coverage was 85.1-90.0%, 88.4-96.9% of matched values were within 1%, and median relative differences ranged from `7.13e-8` to `2.50e-6`.
+The fraction of matched PODs differing by more than 10% was 2.4-8.8%.
+The hit-summary key sets matched, with 1,070 of 1,086 complete hit-call rows exact.
+Both enrichment files retained all 8,858 target definitions and universe size 13,176 while the higher hit list changed from 304 to 292 and the lower list from 138 to 134.
+FDR was exact for 6,962 of 8,858 higher-target rows and all 8,858 lower-target rows.
 
 ## Changes required to make it run
 
