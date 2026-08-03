@@ -48,10 +48,16 @@ def xgboost_regression(dat: pd.DataFrame, target: str, feat_cols: list, split_gr
         pred_obs.append(pl.DataFrame({
             "Predicted": predictions,
             "Observed": y_test.values,
-            "Metadata_Plate": test_data["Metadata_Plate"].values,
-            "Metadata_Well": test_data["Metadata_Well"].values,
-            "Metadata_Compound": test_data["Metadata_Compound"].values,
-            "Metadata_OASIS_ID": test_data["Metadata_OASIS_ID"].values,
+            # .values on these object columns yields a numpy object array that
+            # polars infers as Binary, not Utf8. Every other parquet the pipeline
+            # writes uses Utf8, so the mismatch breaks any downstream join on
+            # these keys ("datatypes of join keys don't match - Metadata_Plate:
+            # binary on left does not match ... str on right"), which is what
+            # stops notebooks 2_1 and 2_2. Cast explicitly.
+            "Metadata_Plate": test_data["Metadata_Plate"].astype(str).values,
+            "Metadata_Well": test_data["Metadata_Well"].astype(str).values,
+            "Metadata_Compound": test_data["Metadata_Compound"].astype(str).values,
+            "Metadata_OASIS_ID": test_data["Metadata_OASIS_ID"].astype(str).values,
             "Metadata_Log10Conc": test_data["Metadata_Log10Conc"].values,
             "Variable": target,
             "Split": i,
