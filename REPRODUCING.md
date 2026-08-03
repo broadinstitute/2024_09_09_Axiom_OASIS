@@ -177,6 +177,8 @@ After running the notebooks, invoke the read-only verifier from the repository r
 The JSON report is optional, deterministic for a given invocation, and must be outside both input directories.
 The terminal summary reports every comparison even when a gate fails.
 Exit status 0 means all gates passed, 1 means a reproducibility gate failed, and 2 means the command or an input artifact was invalid.
+An exit-0 PASS covers only the configured gates listed below.
+Differences in non-core metric payloads, hit calls, and enrichment hit-list size, overlap, p-value, and FDR values remain diagnostic and are printed even when the gates pass.
 The verifier rejects identical resolved input directories, missing or unreadable files, empty tables, unexpected schemas, duplicate semantic keys, invalid values, and a report path inside either input.
 
 The gates are:
@@ -193,6 +195,8 @@ The gates are:
   Every POD and bound must be positive and finite, with `POD_um_l <= POD_um <= POD_um_u`.
   Row-count drift and the fraction with relative difference above 10% are reported rather than gated.
   The approximately 0.2% row drift observed between pre-fix runs is informational run-to-run noise, not the acceptance threshold for published-versus-regenerated key drift.
+  These are paper-1A acceptance gates calibrated against the locked recipe and the documented clean comparison, not portability bounds for arbitrary R or BLAS builds.
+  If an environment change crosses a gate, investigate and recalibrate only from documented clean-run evidence; do not widen a threshold merely to clear a failing run.
 
 - **Hit summary.** `SI_tables/hit_summary.csv` must have unique, identical `(OASIS_ID, Compound_name)` key sets and only `Yes` or `No` hit values.
   Hit-call agreement is reported but is not a numerical gate.

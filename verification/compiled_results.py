@@ -4,6 +4,7 @@
 The comparison is deliberately semantic. Parquet row order, CSV row order, and
 the serialization order of enrichment ``overlap_hits`` sets are ignored. The
 input trees are only read; the optional JSON report must live outside them.
+The expected artifacts and acceptance thresholds are specific to OASIS paper 1A.
 """
 
 from __future__ import annotations
@@ -58,7 +59,6 @@ POD_MIN_WITHIN_ONE_PERCENT = 0.85
 POD_MAX_MEDIAN_RELATIVE_DIFFERENCE = 1e-5
 POD_ONE_PERCENT_THRESHOLD = 0.01
 POD_RELATIVE_BOUNDARY_ATOL = 1e-12
-POD_PRE_FIX_RUN_TO_RUN_ROW_DRIFT = 0.002
 POD_MATERIAL_TAIL_THRESHOLD = 0.10
 
 HIT_SUMMARY_FILE = "SI_tables/hit_summary.csv"
@@ -523,8 +523,7 @@ def _pod_file_report(
     relative_difference = np.abs(candidate_pod[comparable] - reference_pod[comparable]) / np.abs(
         reference_pod[comparable],
     )
-    within_one_percent = np.zeros(len(matched_keys), dtype=bool)
-    within_one_percent[comparable] = (relative_difference <= POD_ONE_PERCENT_THRESHOLD) | np.isclose(
+    within_one_percent = (relative_difference <= POD_ONE_PERCENT_THRESHOLD) | np.isclose(
         relative_difference,
         POD_ONE_PERCENT_THRESHOLD,
         rtol=0.0,
@@ -533,8 +532,9 @@ def _pod_file_report(
     within_one_percent_fraction = float(within_one_percent.mean()) if within_one_percent.size else 0.0
     median_relative_difference = float(np.median(relative_difference)) if relative_difference.size else None
     maximum_relative_difference = float(relative_difference.max()) if relative_difference.size else None
-    material_tail = np.zeros(len(matched_keys), dtype=bool)
-    material_tail[comparable] = relative_difference > POD_MATERIAL_TAIL_THRESHOLD
+    material_tail = relative_difference > POD_MATERIAL_TAIL_THRESHOLD
+    comparable_pod_rows = int(comparable.sum())
+    excluded_nonpositive_pod_point_rows = len(matched_keys) - comparable_pod_rows
 
     _append_gate(
         gate_failures,
@@ -567,6 +567,8 @@ def _pod_file_report(
         "candidate_only_keys": len(candidate_only),
         "reference_only_key_sample": _key_sample(reference_only),
         "candidate_only_key_sample": _key_sample(candidate_only),
+        "comparable_pod_rows": comparable_pod_rows,
+        "excluded_nonpositive_pod_point_rows": excluded_nonpositive_pod_point_rows,
         "within_one_percent_rows": int(within_one_percent.sum()),
         "within_one_percent_fraction": within_one_percent_fraction,
         "median_reference_relative_difference": median_relative_difference,
@@ -574,8 +576,6 @@ def _pod_file_report(
         "over_ten_percent_rows": int(material_tail.sum()),
         "over_ten_percent_fraction": float(material_tail.mean()) if material_tail.size else 0.0,
         "row_count_relative_drift": row_count_relative_drift,
-        "observed_pre_fix_run_to_run_row_drift": POD_PRE_FIX_RUN_TO_RUN_ROW_DRIFT,
-        "within_observed_pre_fix_run_to_run_noise": row_count_relative_drift <= POD_PRE_FIX_RUN_TO_RUN_ROW_DRIFT,
         "bioactivity_pod_exact_rows": bioactivity_exact_rows,
         "reference_validity": reference_validity,
         "candidate_validity": candidate_validity,
@@ -962,14 +962,17 @@ def _print_human_summary(result: VerificationResult) -> None:
             f"  {filename}: rows {file_report['reference_rows']}/{file_report['candidate_rows']}, "
             f"matched {file_report['matched_keys']}, coverage "
             f"{_format_float(file_report['reference_key_coverage'], '.1%')}/"
-            f"{_format_float(file_report['candidate_key_coverage'], '.1%')}, within 1% "
-            f"{_format_float(file_report['within_one_percent_fraction'], '.1%')}, median rel "
+            f"{_format_float(file_report['candidate_key_coverage'], '.1%')}, comparable "
+            f"{file_report['comparable_pod_rows']}/{file_report['matched_keys']} "
+            f"(excluded non-positive POD points {file_report['excluded_nonpositive_pod_point_rows']}), "
+            f"within 1% "
+            f"{file_report['within_one_percent_rows']}/{file_report['comparable_pod_rows']} "
+            f"({_format_float(file_report['within_one_percent_fraction'], '.1%')}), median rel "
             f"{_format_float(file_report['median_reference_relative_difference'], '.3g')}, "
             f">10% tail {_format_float(file_report['over_ten_percent_fraction'], '.1%')} "
-            f"({file_report['over_ten_percent_rows']} rows), max rel "
+            f"({file_report['over_ten_percent_rows']}/{file_report['comparable_pod_rows']} rows), max rel "
             f"{_format_float(file_report['maximum_reference_relative_difference'], '.3g')}, row drift "
-            f"{_format_float(file_report['row_count_relative_drift'], '.3%')} "
-            f"(observed pre-fix run-to-run noise {POD_PRE_FIX_RUN_TO_RUN_ROW_DRIFT:.1%})",
+            f"{_format_float(file_report['row_count_relative_drift'], '.3%')}",
         )
 
     hit_summary = _mapping(result.report["hit_summary"])
@@ -1026,7 +1029,11 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     _print_human_summary(result)
     if result.passed:
-        print("PASS: all compiled-result reproducibility gates passed")
+        print(
+            "PASS: all configured reproducibility gates passed; "
+            "non-core metric payloads, hit calls, and enrichment hit-list, overlap, p-value, and FDR "
+            "differences are diagnostic",
+        )
         return 0
     print(f"FAIL: {len(result.gate_failures)} reproducibility gate(s) failed", file=sys.stderr)
     for failure in result.gate_failures:

@@ -170,9 +170,15 @@ class CompiledResultsVerifierTest(unittest.TestCase):
         self.root = Path(self.temporary_directory.name)
         self.reference, self.candidate = _build_fixture(self.root)
 
+    def _main_output(self, *arguments: str) -> tuple[int, str, str]:
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+            exit_code = verifier.main(list(arguments))
+        return exit_code, stdout.getvalue(), stderr.getvalue()
+
     def _main(self, *arguments: str) -> int:
-        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-            return verifier.main(list(arguments))
+        return self._main_output(*arguments)[0]
 
     def test_pass_is_semantic_deterministic_and_read_only(self) -> None:
         """Ignore row/set order and allowed hit-list drift without writes."""
@@ -180,7 +186,7 @@ class CompiledResultsVerifierTest(unittest.TestCase):
         before_reference = _tree_digest(self.reference)
         before_candidate = _tree_digest(self.candidate)
         with _read_only_trees(self.reference, self.candidate):
-            first_code = self._main(
+            first_code, first_stdout, first_stderr = self._main_output(
                 "--reference",
                 os.fspath(self.reference),
                 "--candidate",
@@ -201,6 +207,12 @@ class CompiledResultsVerifierTest(unittest.TestCase):
 
         self.assertEqual(first_code, 0)
         self.assertEqual(second_code, 0)
+        self.assertIn(
+            "non-core metric payloads, hit calls, and enrichment hit-list, overlap, p-value, and FDR differences "
+            "are diagnostic",
+            first_stdout,
+        )
+        self.assertNotIn("FAIL:", first_stderr)
         self.assertEqual(first_report, second_report)
         self.assertEqual(_tree_digest(self.reference), before_reference)
         self.assertEqual(_tree_digest(self.candidate), before_candidate)
@@ -210,6 +222,9 @@ class CompiledResultsVerifierTest(unittest.TestCase):
         self.assertEqual(pod_report["matched_keys"], POD_FIXTURE_ROWS - 1)
         self.assertEqual(pod_report["reference_only_keys"], 1)
         self.assertEqual(pod_report["candidate_only_keys"], 1)
+        self.assertEqual(pod_report["comparable_pod_rows"], POD_FIXTURE_ROWS - 1)
+        self.assertEqual(pod_report["excluded_nonpositive_pod_point_rows"], 0)
+        self.assertNotIn("within_observed_pre_fix_run_to_run_noise", pod_report)
         enrichment = report["enrichment"]
         self.assertIsInstance(enrichment, dict)
         for filename in verifier.ENRICHMENT_FILES:
@@ -294,6 +309,26 @@ class CompiledResultsVerifierTest(unittest.TestCase):
 
         self.assertFalse(result.passed)
         self.assertTrue(any("invalid POD bounds" in failure for failure in result.gate_failures))
+
+    def test_nonpositive_pod_is_excluded_from_relative_difference_denominators(self) -> None:
+        """Keep diagnostic fractions coherent when a positivity gate fails."""
+        filename = "SI_tables/ldh_pods.csv"
+        frame = pd.read_csv(self.candidate / filename, keep_default_na=False)
+        frame.loc[1, ["POD_um", "POD_um_l", "POD_um_u"]] = 0.0
+        frame.to_csv(self.candidate / filename, index=False)
+
+        result = verifier.verify_compiled_results(self.reference, self.candidate)
+
+        self.assertFalse(result.passed)
+        self.assertTrue(any("non-positive POD" in failure for failure in result.gate_failures))
+        pod_report = result.report["pods"][filename]
+        self.assertEqual(pod_report["matched_keys"], POD_FIXTURE_ROWS - 1)
+        self.assertEqual(pod_report["comparable_pod_rows"], POD_FIXTURE_ROWS - 2)
+        self.assertEqual(pod_report["excluded_nonpositive_pod_point_rows"], 1)
+        self.assertEqual(pod_report["within_one_percent_rows"], POD_FIXTURE_ROWS - 2)
+        self.assertEqual(pod_report["within_one_percent_fraction"], 1.0)
+        self.assertEqual(pod_report["over_ten_percent_rows"], 0)
+        self.assertEqual(pod_report["over_ten_percent_fraction"], 0.0)
 
     def test_enrichment_target_size_mismatch_fails(self) -> None:
         """Gate target definition drift while allowing hit-list-size drift."""
