@@ -63,8 +63,13 @@ DOI 10.5281/zenodo.17067683). This is a complete substitute for scripts
 `1A`-`2E`.
 
 ```bash
-cd 0_prepare_data && python 4A_download_compiled_inputs.py && cd ..
+cd 0_prepare_data
+pixi run --manifest-path ../pixi.toml -e pipeline python 4A_download_compiled_inputs.py
+cd ..
 ```
+
+Use the pixi Python, not a bare `python`: `4A` imports `requests`, which the
+system interpreter will not have.
 
 `4A` has no resume and no checksum, so a truncated download yields a corrupt
 parquet with no error. Verify against the sizes and MD5 prefixes Zenodo
@@ -115,26 +120,38 @@ rules each expect all 4 GPUs.
 polars API generations (see the table in `pixi.toml`). Run in this order; the
 first three write the artifacts the rest compare against.
 
+Pass `--ExecutePreprocessor.kernel_name=python3`. Several notebooks embed a
+kernelspec named `oasis-prot-proc`, which does not exist anywhere; without the
+override, execution fails on a missing kernel rather than on anything real.
+
+The loops below are fail-fast (`set -e`). Do not drop that: a plain `for` loop
+lets an early failure scroll past while later notebooks succeed, which is how
+`3_2_1` was wrongly recorded as passing in an earlier revision of this file.
+
 ```bash
+set -e
 cd 2_downstream_analysis/manuscript_notebooks
 for nb in 3_2_0_assay_metrics 4_1_results_tables_SI 2_1_predict_continuous_assays \
           1_2_number_active_readouts 1_2_1_cmpds_increase_mt 3_1_toxcast_endpoints \
-          3_2_1_compare_endpoint_types 3_2_2_compare_concs_reps; do
+          3_2_2_compare_concs_reps; do
   pixi run --manifest-path ../../pixi.toml -e pipeline \
-    jupyter nbconvert --to notebook --execute --inplace $nb.ipynb
+    jupyter nbconvert --to notebook --execute --inplace \
+    --ExecutePreprocessor.kernel_name=python3 $nb.ipynb
 done
 pixi run --manifest-path ../../pixi.toml -e notebooks \
-  jupyter nbconvert --to notebook --execute --inplace 3_2_3_compare_endpoints_detail.ipynb
+  jupyter nbconvert --to notebook --execute --inplace \
+  --ExecutePreprocessor.kernel_name=python3 3_2_3_compare_endpoints_detail.ipynb
 cd ../other_notebooks
 for nb in 02_analyze_AR 03_analyze_ER 04_analyze_GR; do
   pixi run --manifest-path ../../pixi.toml -e notebooks \
-    jupyter nbconvert --to notebook --execute --inplace $nb.ipynb
+    jupyter nbconvert --to notebook --execute --inplace \
+    --ExecutePreprocessor.kernel_name=python3 $nb.ipynb
 done
 ```
 
-Not runnable, by design or defect: `2_2` and `01_checkwelleffects` (see below);
-`1_3`, `SI_compare_processing` and `05_compare_pods_transforms` need the
-extended config matrix; `Plot_images` needs S3 TIFF downloads into PNG
+Not runnable, by design or defect: `3_2_1`, `2_2` and `01_checkwelleffects`
+(see below); `1_3`, `SI_compare_processing` and `05_compare_pods_transforms`
+need the extended config matrix; `Plot_images` needs S3 TIFF downloads into PNG
 subdirectories it does not create.
 
 **5. Comparing.** The notebooks overwrite
@@ -352,6 +369,36 @@ with whatever `drc` and `fastbmdR` builds nixpkgs resolved, versus the authors'
 This bears directly on the OASIS Phase I discovery question about which POD
 methods are stable and interpretable.
 
+### The pipeline is not deterministic run to run
+
+An independent clean run on the same host, same commit, same environment
+(recorded separately) produced POD tables that differ from the ones above:
+
+| table | run A new rows / matched | run B new rows / matched |
+| --- | ---: | ---: |
+| `cellpainting_cellprofiler` | 7161 / 6094 | 7150 / 6087 |
+| `cellpainting_dino` | 3437 / 3031 | 3434 / 3029 |
+| `cellpainting_cpcnn` | 535 / 473 | 535 / 472 |
+
+The enrichment output drifts the same way: 6966 vs 6962 of 8858 `fdr` values
+bit-identical to the committed file.
+
+This is more consequential than the drift against the published run. Two
+executions of *identical* code, on the same machine, with byte-identical inputs
+do not agree on which compounds pass. So the POD instability is not only
+sensitivity to environment or feature-set changes -- there is genuine
+run-to-run nondeterminism inside the curve-fitting stage itself. The classifier
+path is unaffected: `AggType == "all"` is bit-exact in both runs.
+
+Consequence for anyone comparing results: a POD table differing by ~0.2% of
+rows is within observed run-to-run noise and is not evidence of a real change.
+Only the bit-exact `all` classifier rows are a reliable regression signal.
+
+Separately, `overlap_hits` in the enrichment CSVs is built from unordered
+Python sets and the final sort keys only on FDR, so tied rows serialise in
+arbitrary order. The numbers are repeatable; the file bytes are not. Compare
+those files by value, never by checksum.
+
 ### `cellprofiler_filt` vs `cellprofiler`: resolved, and immaterial
 
 `inputs/conf/README.md` names `cellprofiler_filt.json` as the manuscript
@@ -392,8 +439,8 @@ specific to R versions.
 
 Run from clean, each in its assigned environment.
 
-Pass (12): `1_2`, `1_2_1`, `2_1`, `3_1`, `3_2_0`, `3_2_1`, `3_2_2`, `3_2_3`,
-`4_1`, `02_analyze_AR`, `03_analyze_ER`, `04_analyze_GR`.
+Pass (11): `1_2`, `1_2_1`, `2_1`, `3_1`, `3_2_0`, `3_2_2`, `3_2_3`, `4_1`,
+`02_analyze_AR`, `03_analyze_ER`, `04_analyze_GR`.
 
 Fixed to get there:
 
@@ -409,6 +456,16 @@ Fixed to get there:
   any single polars version. Fixed by aliasing in cell 4.
 
 Still failing, documented rather than patched:
+
+- `3_2_1_compare_endpoint_types`: fails at `smf.mixedlm` with
+  `ValueError: negative dimensions are not allowed`. Its `_AR` filter reduces
+  the endpoint group counts from 9/69/696/6 to 0/0/36/0, and pandas
+  `groupby(observed=False)` then iterates the empty `axiom_cytotox` category
+  into `mixedlm`, where Patsy fails on an empty design matrix. Deterministic:
+  the committed and the regenerated metrics produce the same empty groups.
+  Fixing the `pn` import (below) was necessary but not sufficient. An earlier
+  revision of this file listed this notebook as passing; that was wrong -- the
+  import fix was made and the notebook was never re-run to confirm.
 
 - `2_2_outlier_enrichment_analysis`: cell 1 ends with
   `group_by(["Metadata_Perturbation", "Variable", "Metadata_Well",
@@ -432,9 +489,11 @@ files. The enrichment machinery is exact --- `universe_size` is 13176 in all
 8858 rows of both, target-set definitions agree, and 6966 of 8858 `fdr` values
 are identical.
 
-The input hit list is not: `hit_list_size` is 304 in the committed file and 292
-in the reproduction, differing in every row, which reshuffles p-values and the
-top-ranked targets.
+The input hit list is not: for `err_higher_targets.csv`, `hit_list_size` is 304
+in the committed file and 292 in the reproduction, differing in every row, which
+reshuffles p-values and the top-ranked targets. `err_lower_targets.csv` shows
+the same pattern at 138 committed vs 134 reproduced, though all 8858 of its
+`fdr` values are bit-identical.
 
 This is a **second, independent divergence**, not more of the POD story:
 `predict_axiom_continuous` reads well-level profiles directly and never touches
