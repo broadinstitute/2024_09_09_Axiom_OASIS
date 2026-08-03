@@ -1,2 +1,10 @@
 pixi.lock linguist-generated=true
 flake.lock linguist-generated=true
+
+# Executed notebooks are committed with their outputs, so re-running them
+# rewrites iopub timestamps, execution counts and embedded images. Inert
+# unless the reader runs `nbdime config-git --enable --global`, which
+# registers these drivers and merges notebooks structurally rather than as
+# raw JSON. Do not swap this for nbstripout: that discards the outputs.
+*.ipynb diff=jupyternotebook
+*.ipynb merge=jupyternotebook

@@ -41,8 +41,9 @@ different code.
 
 ## Running it from scratch
 
-Requires Nix with flakes, and a machine with 4 GPUs (see caveats). Roughly
-3.5 hours of wall clock for the three configs.
+Requires Nix with flakes, and at least one CUDA GPU (see caveats). Roughly
+3.5 hours of wall clock for the three configs on a 4-GPU node; expect longer
+on fewer GPUs.
 
 **1. Environments.** R comes from Nix; Python and snakemake come from pixi.
 Everything below assumes you are inside the Nix shell.
@@ -114,7 +115,7 @@ cd ..
 
 Use `--cores 4`, not more: no rule declares `threads:` or `resources:`, several
 rules spawn their own pools sized to the whole machine, and the four classifier
-rules each expect all 4 GPUs.
+rules each run 4 workers across every GPU they can see.
 
 **4. Notebooks.** Which environment matters -- the repo mixes two incompatible
 polars API generations (see the table in `pixi.toml`). Run in this order; the
@@ -127,6 +128,13 @@ override, execution fails on a missing kernel rather than on anything real.
 The loops below are fail-fast (`set -e`). Do not drop that: a plain `for` loop
 lets an early failure scroll past while later notebooks succeed, which is how
 `3_2_1` was wrongly recorded as passing in an earlier revision of this file.
+
+`--inplace` rewrites the notebooks. They are committed with their outputs, so a
+clean run produces a large diff (~10k lines) that is entirely execution
+metadata: iopub timestamps, execution counts and embedded images. That is
+expected, and it is not evidence of a behaviour change. `.gitattributes`
+registers nbdime as the notebook diff and merge driver; run
+`nbdime config-git --enable --global` once to make it take effect.
 
 ```bash
 set -e
@@ -278,8 +286,13 @@ Each is a separate commit on this branch.
   `*_ap.json` configs reach it, so it does not affect the three-config first
   pass.
 
-- **Hardware assumption.** `classifier/classify.py` hardcodes `num_gpus = 4`
-  and indexes `cp.cuda.Device(i % 4)`. It requires a 4-GPU node.
+- **Hardware assumption.** `classifier/classify.py` used to hardcode
+  `num_gpus = 4` and index `cp.cuda.Device(i % 4)`, which required a 4-GPU node.
+  Worse, `process_label_and_agg` catches every exception and returns `None`, and
+  the caller filters `None` out, so on a smaller node three quarters of the
+  classifier tasks were dropped silently while snakemake still exited 0.
+  It now takes the device count from `cp.cuda.runtime.getDeviceCount()` and keeps
+  the worker count at 4, which is a no-op on a 4-GPU node and correct below that.
   `concresponse/compute_distances.R` hardcodes 30 R workers; `concresponse/ap.py`
   hardcodes 10. No rule declares `threads:` or `resources:`, so `--cores N`
   will oversubscribe.

@@ -41,8 +41,8 @@ python = "3.11.*"
 # in with it, so a pypi numpy pin loses to the conda solve. Pinning here keeps
 # requirements.txt's 1.24.3 and lets the solver pick a cupy built against it.
 numpy = "1.24.*"
-# classifier/classify.py hardcodes num_gpus = 4 and calls cp.cuda.Device().
-# cupy is imported but absent from requirements.txt.
+# classifier/classify.py sizes its GPU pool from cp.cuda.runtime.getDeviceCount()
+# and calls cp.cuda.Device(). cupy is imported but absent from requirements.txt.
 #
 # No upper bound needed: CUDA minor-version compatibility lets a 12.9 runtime
 # run on the 12.7-capable driver (565.57.01). What matters is that the flake
