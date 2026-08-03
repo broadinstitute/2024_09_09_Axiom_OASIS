@@ -190,6 +190,11 @@ Each is a separate commit on this branch.
 6. **polars API split**. See the table in `pixi.toml`. Handled by environment
    separation rather than by editing notebooks.
 
+7. **Deterministic distance-table order** (`concresponse/compile_dist.py`).
+   Polars `unique()` and `pivot()` emitted the same values in a different row order on each process.
+   The R curve fitter sorts only by concentration, so replicates at the same concentration reached `nls` in that arbitrary order and changed convergence, selected models and POD pass calls.
+   The compiler now preserves input order while deduplicating, orders distance columns, and sorts rows by the complete pivot key before writing Parquet.
+
 ## Known caveats
 
 - **`cellprofiler_filt` vs `cellprofiler`.** `inputs/conf/README.md` says the
@@ -351,14 +356,12 @@ Median relative difference is 1e-6 to 1e-7: for the typical compound the
 reproduced POD matches the published one to six or seven significant figures.
 88-97% of matched PODs agree within 1%.
 
-The tail is the finding. Roughly one matched POD in ten diverges materially
-(maxima 10x to 70x), and 10-15% of rows appear in only one of the two runs.
-Both follow from the same mechanism: `fastbmdR` selects among eight model
-families (Exp2, Exp3, Exp4, Exp5, Hill, Pow, Poly2, Lin) by AIC and then applies
-pass/fail gates. Model selection is discrete, so when two families fit nearly
-equally well a difference in the seventh decimal flips the choice and the POD can
-move by an order of magnitude. The same knife-edge behaviour at the `all.pass`
-gates moves compounds in and out of the tables.
+The tail is the finding.
+Roughly one matched POD in ten diverges materially (maxima 10x to 70x), and
+10-15% of rows appear in only one of the two runs.
+`fastbmdR` fits eight model families (Exp2, Exp3, Exp4, Exp5, Hill, Power, Poly2, Lin) and then applies discrete model and pass/fail decisions.
+For Cell Painting distances, `fit_curves.R` explicitly selects the model with the smallest residual SD (`filt.var = "SDres"`); the cell-count, MTT and LDH fits use `scoresPOD`'s default rounded AIC selection.
+Small numerical differences can therefore change the selected model or a pass/fail gate and move the POD by an order of magnitude.
 
 Summary: continuous quantities reproduce to numerical precision; the discrete
 decisions layered on top of them are unstable to an environment change that
@@ -369,7 +372,7 @@ with whatever `drc` and `fastbmdR` builds nixpkgs resolved, versus the authors'
 This bears directly on the OASIS Phase I discovery question about which POD
 methods are stable and interpretable.
 
-### The pipeline is not deterministic run to run
+### Root cause and fix for run-to-run nondeterminism
 
 An independent clean run on the same host, same commit, same environment
 (recorded separately) produced POD tables that differ from the ones above:
@@ -383,16 +386,43 @@ An independent clean run on the same host, same commit, same environment
 The enrichment output drifts the same way: 6966 vs 6962 of 8858 `fdr` values
 bit-identical to the committed file.
 
-This is more consequential than the drift against the published run. Two
-executions of *identical* code, on the same machine, with byte-identical inputs
-do not agree on which compounds pass. So the POD instability is not only
-sensitivity to environment or feature-set changes -- there is genuine
-run-to-run nondeterminism inside the curve-fitting stage itself. The classifier
-path is unaffected: `AggType == "all"` is bit-exact in both runs.
+The divergence begins at `concresponse/compile_dist.py`, immediately before curve fitting.
+The two runs' well profiles, `gmd.parquet`, and `cmd.parquet` were byte-identical.
+Their compiled `distances.parquet` files were not byte-identical, but all 21,319 rows and all distance values aligned bit-exactly on the complete metadata key.
+Only physical row order differed.
 
-Consequence for anyone comparing results: a POD table differing by ~0.2% of
-rows is within observed run-to-run noise and is not evidence of a real change.
-Only the bit-exact `all` classifier rows are a reliable regression signal.
+The cause was `dat.unique()` with Polars 0.20's default `maintain_order=False`, followed by a pivot with no final sort.
+Two direct compilations in separate Python processes reproduced the problem: the output checksums differed even though a canonical comparison found no value difference.
+`fit_curves.R` then sorts observations only by concentration, preserving that arbitrary order among tied replicates.
+Nonlinear fits and likelihood-profile confidence intervals are numerically sensitive to observation order, so the ordering difference changes convergence and downstream model selection without changing the underlying data.
+
+The parallel and RNG hypotheses are ruled out for this path.
+The installed `fastbmdR::scoresPOD` calls both `PerformCurveFitting` and `PerformBMDCalc` with `ncpus = 1`, so its FORK branches are unreachable.
+The nonlinear fits and `confint.nls` profile path contain no RNG; the Lin and Poly2 lack-of-fit helper does call `rnorm`, but resets the same hard-coded seed before every call.
+
+The fix preserves order during deduplication, puts distance columns in a canonical order, and sorts rows by the complete metadata pivot key before writing `distances.parquet`.
+Two post-fix compilations of the full CellProfiler inputs produced the same checksum (`31555961fbb75cdd114284513e6d2c10b78de1a084fa48cd54ca807626d614c5`).
+The same two-process check produced byte-identical outputs for CPCNN and DINO.
+A regression test also shuffles rows, distance-column discovery order, and exact duplicates, then requires byte-identical wide Parquets.
+
+As a full serial check, three fresh R processes reached the same result.
+The first two used a byte-identical canonical-row input with the pre-fix distance-column order (checksum `f8c5ff025e3276363cb4dd568add2b5ad141a8b23175669d02b1998cba6e6c87`) and took 1662 and 1663 seconds.
+The third used the exact post-fix compiler output (checksum `31555961fbb75cdd114284513e6d2c10b78de1a084fa48cd54ca807626d614c5`) and took 1646 seconds.
+All three wrote byte-identical 20,508-row `bmds.parquet` files with checksum `2cf2af783c4b0a0e3f3a02878b1f0d8fc381c0908705e39e3969b1f981473fb5`.
+This validates consecutive serial determinism on canonical rows and a full fit from the exact current compiler output; the feature-column ordering difference between the two inputs did not affect the fitted result.
+The canonical result has 7156 rows after `4_1`'s `all.pass & SDres < 3*SDctrl` filter, a stable new baseline between the two arbitrary pre-fix outcomes of 7161 and 7150.
+
+A one-compound serial test demonstrates causality rather than correlation.
+Two value-identical but differently ordered Oxyphenbutazone inputs changed 17 of 19 endpoint BMDs.
+For Cytoplasm_Mito, Exp5 converged in one order (BMD 3.692345) but not the other, which selected Poly2 (BMD 2.362112).
+Sorting both inputs by the complete metadata key made the inputs and resulting BMD objects byte-identical.
+
+The historical ~0.2% POD row drift remains the compatibility tolerance for comparing pre-fix runs, but it is no longer expected between new runs made from the canonical distance table.
+The classifier path remains unaffected: `AggType == "all"` was bit-exact in both historical runs.
+
+This fix covers the observed morphology `bmds.parquet` path.
+`fit_curves_meta.R` reads the profile Parquet directly and also uses only concentration as its explicit sort key.
+Those profile inputs and the resulting cell-count, MTT and LDH curve Parquets were byte-identical across the two historical runs, so no meta-path drift was observed; a future change to profile row order would need the same tie-break guarantee at that boundary.
 
 Separately, `overlap_hits` in the enrichment CSVs is built from unordered
 Python sets and the final sort keys only on FDR, so tied rows serialise in
@@ -430,10 +460,8 @@ That 1.5% input perturbation changes **83% of the fitted BMDs**: only 3067 of
 18453 matched (compound, endpoint) pairs have identical `bmd`, with differences
 up to 1e4.
 
-This is the same fragility as the version-drift result, measured independently
-and without changing any software: AIC-based model selection over eight families
-amplifies small input perturbations into large output changes. It is not
-specific to R versions.
+This is the same fragility as the version-drift result, measured independently and without changing any software: residual-SD model selection over eight families amplifies small input perturbations into large output changes.
+It is not specific to R versions.
 
 ### Notebook execution
 
