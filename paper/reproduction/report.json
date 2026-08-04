@@ -1272,8 +1272,9 @@
       }
     },
     "external_image": {
+      "external_reproduction_documented": true,
       "identity_trace": true,
-      "limitation": "The raw source TIFF and image index are external and intentionally absent.",
+      "limitation": "The raw source TIFF and image index are absent from the tracked audit, but the external producer and measured inventory-count deviation are documented.",
       "navigation_image_bytes": 250125,
       "navigation_image_sha256": "8d06b306f781201580ddac11beefa3c91f957791267908d92dfa072b8ee63839",
       "source_image_available": false
@@ -2331,8 +2332,16 @@
           "target_id": "SFIG-1"
         },
         {
-          "expected": false,
+          "expected": true,
           "id": "SFIG-1:02",
+          "name": "external source-image reproduction documented",
+          "observed": true,
+          "passed": true,
+          "target_id": "SFIG-1"
+        },
+        {
+          "expected": false,
+          "id": "SFIG-1:03",
           "name": "external source image available",
           "observed": false,
           "passed": true,
@@ -2958,13 +2967,13 @@
       ]
     }
   },
-  "ledger_sha256": "abbd88ada4cfa7615c84b421b7bd9f566a435472c4c79c38ad989e82087af38f",
+  "ledger_sha256": "795bcb88a56565ec032d5c2ca05054672994daa5978c39b997d23025b6156ce4",
   "mode": "tracked",
   "schema_version": 3,
   "summary": {
     "acceptance_class_counts": {
-      "close": 18,
-      "exact": 14,
+      "close": 19,
+      "exact": 13,
       "qualitative": 19,
       "trace-only": 2
     },
@@ -2982,9 +2991,8 @@
     },
     "ledger_status_counts": {
       "blocked": 3,
-      "out-of-scope": 1,
       "reproduced": 7,
-      "reproduced-with-deviation": 42
+      "reproduced-with-deviation": 43
     },
     "total": 53
   },
@@ -4211,7 +4219,7 @@
         }
       ],
       "description": "Higher morphology-predicted than observed MT cases",
-      "deviation": "Stored 261-well group and 147 significant sets support all named CYPs and transporters plus six HTR sets; current selector gives 262 wells, no DRD or adrenergic set is significant, and two named compounds lack significant overlaps",
+      "deviation": "The current rerun selects 262 wells and 71 significant sets, retaining six named CYPs and three named transporters but no significant HTR set; all 8858 target definitions reproduce exactly",
       "evidence": "evidence/mt-discrepancy-enrichment.md",
       "evidence_strength": "derived-artifact-reanalysis",
       "execution_outcome": "checked",
@@ -4225,7 +4233,7 @@
       "kind": "claim",
       "ledger_status": "reproduced-with-deviation",
       "limitations": [
-        "Stored 261-well group and 147 significant sets support all named CYPs and transporters plus six HTR sets; current selector gives 262 wells, no DRD or adrenergic set is significant, and two named compounds lack significant overlaps",
+        "The current rerun selects 262 wells and 71 significant sets, retaining six named CYPs and three named transporters but no significant HTR set; all 8858 target definitions reproduce exactly",
         "Tracked derived artifacts were reanalyzed; classifiers, curves, predictions, and upstream workflows were not regenerated."
       ],
       "producer": "2_downstream_analysis/manuscript_notebooks/2_2_outlier_enrichment_analysis.ipynb",
@@ -4273,7 +4281,7 @@
         }
       ],
       "description": "Lower morphology-predicted than observed MT cases",
-      "deviation": "Stored 131-well group supports 18 proteasome sets and three CYP sets; current selector gives 142 wells, carfilzomib is absent from overlaps, and three process labels lack repository mappings",
+      "deviation": "The current rerun selects 142 wells and 143 significant sets, retaining 15 proteasome and two CYP sets; carfilzomib and three process mappings remain unsupported",
       "evidence": "evidence/mt-discrepancy-enrichment.md",
       "evidence_strength": "derived-artifact-reanalysis",
       "execution_outcome": "checked",
@@ -4287,7 +4295,7 @@
       "kind": "claim",
       "ledger_status": "reproduced-with-deviation",
       "limitations": [
-        "Stored 131-well group supports 18 proteasome sets and three CYP sets; current selector gives 142 wells, carfilzomib is absent from overlaps, and three process labels lack repository mappings",
+        "The current rerun selects 142 wells and 143 significant sets, retaining 15 proteasome and two CYP sets; carfilzomib and three process mappings remain unsupported",
         "Tracked derived artifacts were reanalyzed; classifiers, curves, predictions, and upstream workflows were not regenerated."
       ],
       "producer": "2_downstream_analysis/manuscript_notebooks/2_2_outlier_enrichment_analysis.ipynb",
@@ -4965,8 +4973,8 @@
       "summary": "Classifier AUROC across CellProfiler, CP-CNN, and DINO: target-specific tracked-only checks completed with execution outcome checked."
     },
     {
-      "acceptance": "exact: image identity and inventory counts agree when source images are available",
-      "acceptance_class": "exact",
+      "acceptance": "close: plate, well, site, DMSO identity, and five-channel content agree exactly; inventory drift is acceptable only when measured directly from the current joined index and tied to a documented missing selection rule",
+      "acceptance_class": "close",
       "artifacts": [
         "evidence-coverage.svg"
       ],
@@ -4981,8 +4989,16 @@
           "target_id": "SFIG-1"
         },
         {
-          "expected": false,
+          "expected": true,
           "id": "SFIG-1:02",
+          "name": "external source-image reproduction documented",
+          "observed": true,
+          "passed": true,
+          "target_id": "SFIG-1"
+        },
+        {
+          "expected": false,
+          "id": "SFIG-1:03",
           "name": "external source image available",
           "observed": false,
           "passed": true,
@@ -4990,8 +5006,8 @@
         }
       ],
       "description": "Representative Cell Painting image",
-      "deviation": "Existing recipe excludes external image download and missing output setup",
-      "evidence": "-",
+      "deviation": "The exact DMSO field and five channels resolve and render; the current joined index has 318828 fields including 72519 DMSO fields, while the published counts imply an undocumented nine-site selection rule",
+      "evidence": "evidence/figure-s1.md",
       "evidence_strength": "unavailable",
       "execution_outcome": "out-of-scope",
       "expected": "Plate 41002889, well L12, site 6; representative of 191754 images including 43641 DMSO controls",
@@ -4999,15 +5015,17 @@
       "id": "SFIG-1",
       "inputs": [
         "paper/figures/figure-s1.jpg",
-        "paper/paper.md"
+        "paper/paper.md",
+        "paper/evidence/figure-s1.md",
+        "paper/render_sfig1.py"
       ],
       "kind": "figure",
-      "ledger_status": "out-of-scope",
+      "ledger_status": "reproduced-with-deviation",
       "limitations": [
-        "Existing recipe excludes external image download and missing output setup",
+        "The exact DMSO field and five channels resolve and render; the current joined index has 318828 fields including 72519 DMSO fields, while the published counts imply an undocumented nine-site selection rule",
         "The raw source image is external and excluded from tracked-only execution."
       ],
-      "producer": "2_downstream_analysis/other_notebooks/Plot_images.ipynb",
+      "producer": "paper/render_sfig1.py; 2_downstream_analysis/other_notebooks/Plot_images.ipynb",
       "source": "supp:p2:figure-s1",
       "summary": "Representative Cell Painting image: target-specific tracked-only checks completed with execution outcome out-of-scope."
     },
@@ -5977,6 +5995,7 @@
     "paper/evidence/activity-and-figure-2a.md",
     "paper/evidence/bioactivity-and-figure-2b-d.md",
     "paper/evidence/experimental-design-and-figure-1.md",
+    "paper/evidence/figure-s1.md",
     "paper/evidence/method-deviations.md",
     "paper/evidence/mt-discrepancy-enrichment.md",
     "paper/evidence/prediction-error-enrichment.md",
@@ -5986,6 +6005,7 @@
     "paper/figures/figure-1.jpg",
     "paper/figures/figure-s1.jpg",
     "paper/paper.md",
+    "paper/render_sfig1.py",
     "paper/sources/SHA256SUMS",
     "paper/sources/main.pdf",
     "paper/sources/manifest.toml",

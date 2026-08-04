@@ -32,7 +32,7 @@ The following checks passed from the tracked-only snapshot:
 - All local Markdown and image links resolve, applicable Markdown anchors exist, and every ledger evidence path resolves.
 - All tracked Markdown and `paper/targets.tsv` are ASCII-only, use LF endings, and contain no trailing whitespace.
 - The target ledger has exactly ten columns, 53 unique nonempty IDs, valid kind, acceptance, and status vocabularies, one physical row per target, and concrete notes for every deviation, blocker, and out-of-scope decision.
-- The ledger contains no pending row and has the expected inventory of 7 reproduced, 42 reproduced with deviation, 3 blocked, and 1 out of scope.
+- At the audited starting commit, the ledger contained no pending row and had 7 reproduced, 42 reproduced with deviation, 3 blocked, and 1 out of scope.
 - The full 12-test `unittest` suite passed under the locked Nix and pixi environments.
 - The compiled-results verifier returned exit status 0 and no gate failures when run against two temporary copies of the tracked compiled results.
 - SHA-256 inventories before and after the verifier were identical, confirming that the verifier did not modify either input tree.
@@ -78,7 +78,7 @@ Representative reproduced-with-deviation rows were checked across every major co
 `METHOD-POD`, `METHOD-REGRESSION`, and `METHOD-STATS` separate declared methods from executable behavior and unavailable initial conditions.
 `RESOURCE-001` and `INTERPRETATION-001` preserve traceability while keeping external resources and biological hypotheses outside reproduced numerical claims.
 
-No unsupported classification or broken evidence reference was found, so all 53 target rows and the PR inventory remain unchanged.
+No unsupported classification or broken evidence reference was found at the audited starting commit, so that snapshot's 53 target rows and PR inventory remained unchanged.
 
 ## Tracked and external boundaries
 
@@ -87,7 +87,13 @@ The producer paths in `targets.tsv` resolve from tracked state except `1_snakema
 
 The server working tree inspected during the earlier reproduction contained five ignored compiled inputs and 99 ignored pipeline-output files that were absent from the tracked-only snapshot and were not used to make cold-start validation pass.
 The five ignored inputs are the three raw profile Parquets, processed metadata, and image index obtained from Zenodo record 17067683.
-Raw TIFF images and the Figure S1 source image remain external to the Cell Painting Gallery, which is why `SFIG-1` remains out of scope.
+
+## Current branch update
+
+The statements above describe the signed `dc1f22d` cold-start snapshot.
+The current branch adds the external Figure S1 producer and moves that ledger row from out of scope to reproduced with deviation without changing the tracked-only audit's external-execution boundary.
+Raw TIFF images remain external in a tracked-only snapshot, but `paper/render_sfig1.py` now resolves and downloads the exact Figure S1 field from the Cell Painting Gallery.
+The tracked audit still reports that external execution boundary, while the ledger records the completed external reproduction and its inventory-count deviation.
 Raw invitrodb v4.1 regeneration requires an external database and a documented non-functional download script, while the six derived ToxCast annotation Parquets are tracked.
 The full pipeline also requires Nix dependencies, pixi packages, CUDA hardware, and several hours of computation.
 DOI resolution and equivalence between the published GitHub owner URL and the current Broad origin require external state.
@@ -98,5 +104,6 @@ Scientific regeneration that crosses the documented input, hardware, or intentio
 ## Conclusion
 
 The repository is usable as a cold-start paper contract and guides a new agent to every target, acceptance rule, evidence record, deviation, blocker, and external dependency without relying on ignored local state.
-The final inventory is internally supported at 0 pending, 7 reproduced, 42 reproduced with deviation, 3 blocked, and 1 out of scope.
+The current ledger is internally supported at 0 pending, 7 reproduced, 43 reproduced with deviation, 3 blocked, and 0 out of scope.
+The tracked-only executable audit separately retains one out-of-scope execution outcome for Figure S1 because it does not contact external services.
 All PR phases have repository evidence and can be marked complete under the contract's explicit allowance for documented deviations, blocked targets, and out-of-scope resources.

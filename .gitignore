@@ -166,6 +166,7 @@ cython_debug/
 
 test.ipynb
 scratch_outputs/
+paper/runs/
 s3_credentials.sh
 to_do.txt
 

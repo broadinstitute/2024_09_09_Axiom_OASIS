@@ -46,7 +46,44 @@ A reported blocker or out-of-scope target is a complete accounting result, not a
 The command fails if the explicit recipe registry no longer covers the ledger exactly or if a declared check contradicts the tracked evidence.
 
 This is the small, repository-only entry point for reviewing the whole paper.
-The longer GPU workflow in `REPRODUCING.md` remains the path for regenerating upstream compiled artifacts from downloaded raw inputs.
+The longer GPU workflow in `REPRODUCING.md` remains the manual path for regenerating upstream compiled artifacts from downloaded raw inputs.
+
+## Run the supported upstream reproduction
+
+The end-to-end runner turns that manual workflow into one resumable command:
+
+```bash
+uv run paper/reproduce_all.py
+```
+
+It creates a new ignored directory under `paper/runs/`, archives the current commit into an isolated workspace, verifies or downloads the five Zenodo inputs, installs both locked environments, and is wired to run three core configurations plus the full filtered CellProfiler configuration and nine targeted current sensitivity configurations.
+A completed run renders Figure S1 from its five public TIFFs, executes all 17 currently runnable analysis notebooks, applies the semantic compiled-results gates, runs the tracked 53-target audit on a separate pristine snapshot, and exports the executed notebooks to greppable Markdown.
+The canonical checkout and its published artifacts are never compute targets.
+The first complete 13-configuration, 17-notebook GPU invocation remains pending; the core notebooks, repaired MTT layer, semantic verifier, and Figure S1 path have been exercised independently.
+
+Review the exact commands before spending several GPU-hours:
+
+```bash
+uv run paper/reproduce_all.py --dry-run
+```
+
+Every stage writes a durable status and log to `manifest.json` in the run directory.
+Resume an interrupted run by passing its directory explicitly:
+
+```bash
+uv run paper/reproduce_all.py --resume --run-dir paper/runs/RUN_NAME
+```
+
+The generated-candidate verdict is `artifacts/semantic-verification.json`.
+`artifacts/tracked-audit/` is a separate source-integrity and target-accounting report; it is not used to reject acceptable regenerated POD drift.
+`artifacts/notebooks/index.md` links the executed code, tables, and extracted plot assets.
+
+A completed invocation regenerates the supported core analysis, all current transformation comparisons, and Figure S1, including the formerly broken MT/LDH enrichment, well-effect, and extended comparison notebooks.
+The core candidate is judged by the numerical verifier.
+The filtered, `_log10`, `_int`, and `_ap` outputs are current sensitivity layers and are inventoried without being mistaken for recovered historical substrates.
+It still does not rebuild pixel-identical publisher-layout composites, resolve the historical Figure 2C significance substrate, or recover the manuscript-era enrichment substrate.
+Those remaining boundaries stay explicit in the run manifest rather than being filled with tracked outputs.
+The tracked notebook files retain historical embedded outputs; the current outputs are the Markdown and assets exported from an isolated completed run.
 
 ## Agent workflow
 
