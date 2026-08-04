@@ -104,14 +104,14 @@ All four published constants trace exactly as declared methods, Benjamini-Hochbe
 
 The camera-ready resource table and repository contract name the Cell Painting Gallery accession `cpg0037-oasis/axiom` for raw images, metadata, CellProfiler profiles, CP-CNN profiles, and DINO profiles.
 Tracked download scripts encode the same metadata and profile paths, while `Plot_images.ipynb` encodes `s3://cellpainting-gallery/cpg0037-oasis/axiom/images` for raw TIFF access.
-The saved checkout contains no local TIFF or rendered PNG image directory; `1_snakemake/inputs/images/index.parquet` is an image-location index rather than raw image data.
+The server working tree inspected for this evidence contained no local TIFF or rendered PNG image directory; `1_snakemake/inputs/images/index.parquet` is an image-location index rather than raw image data.
 Raw-image reproduction therefore depends on the external Cell Painting Gallery.
 
-The saved checkout contains the five compiled Zenodo inputs described by `README.md` and `REPRODUCING.md`.
+The server working tree inspected for this evidence contained the five compiled Zenodo inputs described by `README.md` and `REPRODUCING.md`.
 Their byte sizes and MD5 values match the documented record 17067683 values: CellProfiler `413433180 / 0cf2b9d11268c363d756e69851a1a568`, DINO `399927644 / 421529eb80880721eaa42bdcd26920d5`, CP-CNN `48201019 / d79b1cebc8aa3999fa993ea2500fab8d`, metadata `734477 / 6731b56f8f4fe2db31fcdf1308c305fb`, and image index `2524798 / b56e249504f76bc2f6025f90abc8608c`.
 All five are ignored by `1_snakemake/.gitignore`, so a fresh repository clone must retrieve them externally.
 
-The saved checkout also contains 99 ignored pipeline-output files.
+The server working tree inspected for this evidence also contained 99 ignored pipeline-output files.
 The repository tracks 10 annotation inputs and 17 final compiled-result files, so important processed evidence is repository-local even though the complete scientific output tree is not clone-contained.
 The ToxCast curation note separately documents that raw invitrodb regeneration is an external and currently non-executable dependency, while the derived annotation inputs are pinned locally.
 

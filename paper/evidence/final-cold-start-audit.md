@@ -85,7 +85,7 @@ No unsupported classification or broken evidence reference was found, so all 53 
 The cold-start tree includes the paper sources, searchable transcription, 12 substantive evidence notes, eight figure JPEGs, ten pinned annotation inputs, 17 compiled-result artifacts, notebooks, workflow code, verifier, and tests.
 The producer paths in `targets.tsv` resolve from tracked state except `1_snakemake/inputs/metadata/metadata.parquet`, which is explicitly documented as a downloaded, ignored input for `DESIGN-001` and `TABLE-S1`.
 
-The canonical checkout also contains five ignored compiled inputs and 99 ignored pipeline-output files that were absent from the snapshot and were not used to make cold-start validation pass.
+The server working tree inspected during the earlier reproduction contained five ignored compiled inputs and 99 ignored pipeline-output files that were absent from the tracked-only snapshot and were not used to make cold-start validation pass.
 The five ignored inputs are the three raw profile Parquets, processed metadata, and image index obtained from Zenodo record 17067683.
 Raw TIFF images and the Figure S1 source image remain external to the Cell Painting Gallery, which is why `SFIG-1` remains out of scope.
 Raw invitrodb v4.1 regeneration requires an external database and a documented non-functional download script, while the six derived ToxCast annotation Parquets are tracked.

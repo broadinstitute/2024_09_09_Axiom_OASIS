@@ -73,35 +73,25 @@ Image-based profiling \| cytotoxicity \| mode-of-action \| high-throughput scree
 # Introduction
 
 Scalable approaches for detecting potential *in vivo* toxicity of compounds in humans are urgently needed for better decision-making in human health.
-The majority of the \>350,000 compounds registered for commercial use worldwide have never been assessed for adverse impacts on human health [<sup>1</sup>](https://paperpile.com/c/2xFVvw/3P7iR).
-Even for pharmaceuticals, which undergo extensive preclinical testing, many fail clinical trials due to toxicities not predicted by animal models, draining resources and increasing drug development costs [<sup>2</sup>](https://paperpile.com/c/2xFVvw/il16T).
-Animal-based testing is resource-intensive, raises ethical concerns, and often fails to accurately predict specific adverse health outcomes in humans, making them insufficient for addressing these data gaps.
-Thus, scientists in government, industry, and academia are working to bring about a new paradigm in which a suite of human-relevant *in silico* and *in vitro* models are used to understand and predict the *in vivo* impacts of chemical exposures at scale [<sup>3,4</sup>](https://paperpile.com/c/2xFVvw/6K9bT+KgGPB).
-Developing such scalable methods would transform chemical safety evaluation by enabling more efficient prioritization of environmental and commercial compounds, while also improving early decision-making in drug development.
+The majority of the \>350,000 compounds registered for commercial use worldwide have never been assessed for adverse impacts on human health [<sup>1</sup>](https://paperpile.com/c/2xFVvw/3P7iR). Even for pharmaceuticals, which undergo extensive preclinical testing, many fail clinical trials due to toxicities not predicted by animal models, draining resources and increasing drug development costs [<sup>2</sup>](https://paperpile.com/c/2xFVvw/il16T). Animal-based testing is resource-intensive, raises ethical concerns, and often fails to accurately predict specific adverse health outcomes in humans, making them insufficient for addressing these data gaps.
+Thus, scientists in government, industry, and academia are working to bring about a new paradigm in which a suite of human-relevant *in silico* and *in vitro* models are used to understand and predict the *in vivo* impacts of chemical exposures at scale [<sup>3,4</sup>](https://paperpile.com/c/2xFVvw/6K9bT+KgGPB). Developing such scalable methods would transform chemical safety evaluation by enabling more efficient prioritization of environmental and commercial compounds, while also improving early decision-making in drug development.
 
 *In vitro* cellular models can point towards *in vivo* toxicity when compound-induced changes in cells are known to drive adverse outcomes at real-world exposure concentrations.
-In cases where the link is direct, such as between certain cellular phenotypes and classical toxicity endpoints, *in vitro* assays have already been developed, for example, tests for skin sensitization [<sup>5</sup>](https://paperpile.com/c/2xFVvw/Hjzf8) or genotoxicity [<sup>6</sup>](https://paperpile.com/c/2xFVvw/QjS9X).
-To extend this approach to more complex scenarios and to uncover novel links, researchers are defining causal relationships between compound-induced perturbations and key impacts across biological scales, from macromolecules to cells to tissues to organisms, also called "adverse outcome pathways" [<sup>7,8</sup>](https://paperpile.com/c/2xFVvw/vA7Qb+7KVVh).
-If there is high confidence in how a compound-induced phenotype at the cellular level causes toxicity at the organism level, then observing this phenotype *in vitro* at concentrations relevant to human exposures should be a solid basis for screening for chemical toxicity at scale.
+In cases where the link is direct, such as between certain cellular phenotypes and classical toxicity endpoints, *in vitro* assays have already been developed, for example, tests for skin sensitization [<sup>5</sup>](https://paperpile.com/c/2xFVvw/Hjzf8) or genotoxicity [<sup>6</sup>](https://paperpile.com/c/2xFVvw/QjS9X). To extend this approach to more complex scenarios and to uncover novel links, researchers are defining causal relationships between compound-induced perturbations and key impacts across biological scales, from macromolecules to cells to tissues to organisms, also called "adverse outcome pathways" [<sup>7,8</sup>](https://paperpile.com/c/2xFVvw/vA7Qb+7KVVh). If there is high confidence in how a compound-induced phenotype at the cellular level causes toxicity at the organism level, then observing this phenotype *in vitro* at concentrations relevant to human exposures should be a solid basis for screening for chemical toxicity at scale.
 Linking cellular phenotypes to specific *in vivo* effects is particularly important for industries that create compounds that are supposed to interact with human biology, for example new therapeutics or food ingredients.
 Achieving this vision requires high-throughput methods that can identify specific compound modes-of-action across a range of concentrations.
 
 Targeted *in vitro* assays can identify specific modes-of-action by measuring individual molecular targets and cellular pathways.
 However it is logistically difficult to run enough assays in parallel to comprehensively cover the large variety of molecular targets that are present in human tissues.
-The ToxCast program is a nearly 20-year effort that screened ~1,500 targeted assay endpoints and approximately 10,000 diverse compounds [<sup>9-11</sup>](https://paperpile.com/c/2xFVvw/yQROZ+M8sMB+XtCtu); it is an extremely valuable source of interpretable cellular mode-of-action information resulting in applications across human and environmental health. [<sup>10,12</sup>](https://paperpile.com/c/2xFVvw/M8sMB+yvOvE)
-Recent approaches in toxicology try to capture this information and more with fewer assays by collecting high-throughput, high-dimensional data that covers broad swathes of biological space in a single assay [<sup>4,13-15</sup>](https://paperpile.com/c/2xFVvw/KgGPB+kUchq+rlEuk+KRdtK).
-The Cell Painting assay is a promising approach for acquiring this type of data from cells that might be predictive of specific toxicity-related outcomes [<sup>16</sup>](https://paperpile.com/c/2xFVvw/nG35j).
-It is an image-based profiling assay using six fluorescent dyes to label eight different cell components, and it measures thousands of features, including intensity, shape, and texture of the various stains in various regions of the cell [<sup>17</sup>](https://paperpile.com/c/2xFVvw/N3alo).
-The underlying principle is that different biological perturbations create distinct morphological signatures detectable through imaging.
+The ToxCast program is a nearly 20-year effort that screened ~1,500 targeted assay endpoints and approximately 10,000 diverse compounds [<sup>9-11</sup>](https://paperpile.com/c/2xFVvw/yQROZ+M8sMB+XtCtu); it is an extremely valuable source of interpretable cellular mode-of-action information resulting in applications across human and environmental health.
+[<sup>10,12</sup>](https://paperpile.com/c/2xFVvw/M8sMB+yvOvE) Recent approaches in toxicology try to capture this information and more with fewer assays by collecting high-throughput, high-dimensional data that covers broad swathes of biological space in a single assay [<sup>4,13-15</sup>](https://paperpile.com/c/2xFVvw/KgGPB+kUchq+rlEuk+KRdtK). The Cell Painting assay is a promising approach for acquiring this type of data from cells that might be predictive of specific toxicity-related outcomes [<sup>16</sup>](https://paperpile.com/c/2xFVvw/nG35j). It is an image-based profiling assay using six fluorescent dyes to label eight different cell components, and it measures thousands of features, including intensity, shape, and texture of the various stains in various regions of the cell [<sup>17</sup>](https://paperpile.com/c/2xFVvw/N3alo). The underlying principle is that different biological perturbations create distinct morphological signatures detectable through imaging.
 Cell Painting captures these signatures and can potentially reveal mode-of-action information at the single-cell level while being at least 1000 times cheaper than other single-cell omics such as transcriptomics and proteomics, and at least 15 times cheaper than bulk -omics methods.
 
-Prior work on inferring mode-of-action from Cell Painting and transcriptomics data in high-throughput, concentration-response toxicity screens has primarily relied on unsupervised approaches, where profiles from compounds with unknown modes-of-action are compared to groups of compounds with high-confidence mechanistic annotations [<sup>13,18-20</sup>](https://paperpile.com/c/2xFVvw/skeIa+sb19j+kUchq+yFw7E).
-While these approaches have proven successful in many cases, they face limitations when compounds either perturb cells in multiple ways or trigger common compensatory responses, as subtler specific impacts can be masked by stronger generalized phenotypes.
+Prior work on inferring mode-of-action from Cell Painting and transcriptomics data in high-throughput, concentration-response toxicity screens has primarily relied on unsupervised approaches, where profiles from compounds with unknown modes-of-action are compared to groups of compounds with high-confidence mechanistic annotations [<sup>13,18-20</sup>](https://paperpile.com/c/2xFVvw/skeIa+sb19j+kUchq+yFw7E). While these approaches have proven successful in many cases, they face limitations when compounds either perturb cells in multiple ways or trigger common compensatory responses, as subtler specific impacts can be masked by stronger generalized phenotypes.
 Supervised machine learning is an intuitive approach to disentangle specific mode-of-action and cell state signals from high-content data, and has successfully predicted toxicity-related outcomes from Cell Painting and transcriptomics data in single-concentration *in vitro* screens [<sup>21-24</sup>](https://paperpile.com/c/2xFVvw/oGg2H+BpV5M+acrNa+UKAzb).
 
 In this paper, we used supervised machine learning to predict diverse *in vitro* assay readouts relevant to mode-of-action and cell state using Cell Painting in primary human hepatocytes exposed to eight concentrations of 1,085 compounds.
-We selected hepatocytes because the liver is a primary site of xenobiotic metabolism and liver toxicity is one of the most common causes of compound attrition across pharmaceuticals, agrochemicals, and industrial chemicals [<sup>25,26</sup>](https://paperpile.com/c/2xFVvw/ShH7M+Ygh3A).
-These readouts include curated ToxCast assay activities that represent diverse modes-of-action, as well as biochemical cytotoxicity assays measured alongside the Cell Painting data.
+We selected hepatocytes because the liver is a primary site of xenobiotic metabolism and liver toxicity is one of the most common causes of compound attrition across pharmaceuticals, agrochemicals, and industrial chemicals [<sup>25,26</sup>](https://paperpile.com/c/2xFVvw/ShH7M+Ygh3A). These readouts include curated ToxCast assay activities that represent diverse modes-of-action, as well as biochemical cytotoxicity assays measured alongside the Cell Painting data.
 We also evaluated strategies for making mode-of-action predictions from image-based profiles, including different ways to incorporate concentration and comparing traditional versus deep learning methods for extracting morphological features from images.
 This work contributes to the long-term goal of linking specific *in vitro* cellular responses with specific *in vivo* toxicological outcomes.
 By advancing these connections, we move closer to realizing a new paradigm in toxicology where high-content *in vitro* assays can provide mechanistic explanations of human toxicity at scale to support safer and more efficient decision-making across many different chemical industries.
@@ -114,23 +104,21 @@ By advancing these connections, we move closer to realizing a new paradigm in to
 
 To generate a comprehensive dataset for evaluating cytotoxicity and cellular mode-of-action prediction, we profiled a diverse set of compounds in primary human hepatocytes using a combination of biochemical assays, high-content Cell Painting imaging, and curated ToxCast assay data.
 Future work by the OASIS (Omics for Assessing Signatures for Integrated Safety) Consortium will link these data to *in vivo* liver toxicity observed in rats and in humans, hence the choice of a liver-relevant cell model.
-We tested 1,085 compounds at eight concentrations ranging from 0.01 to 100 uM, with two biological replicates each, in primary human hepatocytes (Figure 1, Supplementary Figure 1).
-The compounds were a subset of compounds from a list of 1,495 compiled by the OASIS Consortium based on the public availability of *in vivo* hepatotoxicity data (Supplementary Table 1).
+We tested 1,085 compounds at eight concentrations ranging from 0.01 to 100 uM, with two biological replicates each, in primary human hepatocytes (Figure 1, Figure S1).
+The compounds were a subset of compounds from a list of 1,495 compiled by the OASIS Consortium based on the public availability of *in vivo* hepatotoxicity data (Table S1).
 The tested compounds include pharmaceuticals, agrochemicals, food additives, and known environmental contaminants.
 
 Hepatocytes were arrayed into 384-well plates and exposed to compounds for 44 hours before carrying out three assays.
 First, we took the supernatants from each well and measured lactate dehydrogenase (LDH), an enzyme that is released during cell membrane damage [<sup>27</sup>](https://paperpile.com/c/2xFVvw/YamBn), and metabolic activity using the Realtime-Glo assay (Promega).
-Similar to the widely-used 3-(4,5-dimethylthiazol-2-yl)-2,5-diphenyltetrazolium bromide (MTT) assay which measures mitochondrial activity [<sup>28</sup>](https://paperpile.com/c/2xFVvw/xulhF), Realtime-Glo measures substrate reduction by metabolically active cells, though it uses a luminescent rather than colorimetric readout.
+Similar to the widely-used 3-(4,5-dimethylthiazol-2-yl)-2,5-diphenyltetrazolium bromide (MTT) assay which measures mitochondrial activity (MT) [<sup>28</sup>](https://paperpile.com/c/2xFVvw/xulhF), Realtime-Glo measures substrate reduction by metabolically active cells, though it uses a luminescent rather than colorimetric readout.
 From here on, we refer to the Realtime-Glo assay as MT.
 
 Next, we applied Cell Painting dyes to stain the cellular DNA, RNA, mitochondria, actin, Golgi, and endoplasmic reticulum, and imaged each well at 40x magnification in five fluorescent channels.
-We created morphological profiles using three different computational methods, including CellProfiler software (yields 5,640 single-cell level, named features for each combination of channel and cell compartment) [<sup>29</sup>](https://paperpile.com/c/2xFVvw/Xq4Xw), Cell Painting convolutional neural network (CP-CNN, pretrained on several large Cell Painting datasets, yields 672 single-cell level, numbered features that are not directly interpretable nor mapped to channels) [<sup>30</sup>](https://paperpile.com/c/2xFVvw/e3bSu), and Meta's "distillation with no labels" v2 vision transformer (DINO, pretrained on 142 million curated natural images, yields 4,608 image-level, numbered features with channel labels) [<sup>31</sup>](https://paperpile.com/c/2xFVvw/L2SVY).
-In addition to morphological features, we also counted the number of nuclei within each well using the Cell Painting images.
+We created morphological profiles using three different computational methods, including CellProfiler software (yields 5,640 single-cell level, named features for each combination of channel and cell compartment) [<sup>29</sup>](https://paperpile.com/c/2xFVvw/Xq4Xw), Cell Painting convolutional neural network (CP-CNN, pretrained on several large Cell Painting datasets, yields 672 single-cell level, numbered features that are not directly interpretable nor mapped to channels) [<sup>30</sup>](https://paperpile.com/c/2xFVvw/e3bSu), and Meta's "distillation with no labels" v2 vision transformer (DINO, pretrained on 142 million curated natural images, yields 4,608 image-level, numbered features with channel labels) [<sup>31</sup>](https://paperpile.com/c/2xFVvw/L2SVY). In addition to morphological features, we also counted the number of nuclei within each well using the Cell Painting images.
 We analyzed this cell count as a third cytotoxicity-related metric, alongside LDH and MT.
 While all three measurements - LDH, MT, and cell counts - reflect different biological aspects of cell state and toxicity, we collectively refer to them as "cytotoxicity-related" metrics for convenience.
 
-Finally, we extracted relevant ToxCast assay results from *invitrodb [<sup>12</sup>](https://paperpile.com/c/2xFVvw/yvOvE)*.
-The ToxCast program screened ~1,500 targeted assay endpoints and approximately 10,000 diverse compounds [<sup>10,11</sup>](https://paperpile.com/c/2xFVvw/M8sMB+XtCtu), an extremely valuable source of compound mode-of-action information that overlaps with nearly 90% of our tested compounds.
+Finally, we extracted relevant ToxCast assay results from *invitrodb [<sup>12</sup>](https://paperpile.com/c/2xFVvw/yvOvE)*. The ToxCast program screened ~1,500 targeted assay endpoints and approximately 10,000 diverse compounds [<sup>10,11</sup>](https://paperpile.com/c/2xFVvw/M8sMB+XtCtu), an extremely valuable source of compound mode-of-action information that overlaps with nearly 90% of our tested compounds.
 ToxCast assay activities were used to train models to predict compound cytotoxicity and mode-of-action based on Cell Painting profiles.
 
 ## 2. Morphological profiles detect cytotoxicity and more sensitive bioactivity signals
@@ -147,7 +135,7 @@ We then compared these signals with concentration-dependent bioactivity in Cell 
 
 We analyzed the cytotoxicity-related endpoints to determine which compounds induced significant activity relative to DMSO negative controls.
 We also used concentration-response analysis to estimate the lowest concentration with detected activity for each active compound, herein referred to as the point-of-departure (POD), and whether the detected activity was more, or less, cytotoxic compared to DMSO.
-We detected activity for 430 of the 1,085 compounds (40%) in the MT assay, 221 (20%) in the cell count assay, and 144 (13%) in the LDH assay for a total of 438 unique compounds (Supplementary Table 2).
+We detected activity for 430 of the 1,085 compounds (40%) in the MT assay, 221 (20%) in the cell count assay, and 144 (13%) in the LDH assay for a total of 438 unique compounds (Table S2).
 Overall, 429 compounds (40%) induced cytotoxicity as measured by one or more assays at one or more concentrations - the discrepancy between the 438 compounds with assay activity is because sometimes the directionality compared to DMSO does not indicate cytotoxicity, for example an increase in cell count would count towards the 438 active compounds but not the 429 cytotoxic compounds.
 Most compounds active in the MT assay caused decreases in activity that were indicative of cytotoxicity, however ten compounds (1%) caused an increase in MT assay readouts relative to the DMSO controls.
 Four of these compounds had particularly strong responses (Figure 2A).
@@ -157,13 +145,12 @@ Four of these compounds had particularly strong responses (Figure 2A).
 #### 2.1.2 Morphological profiling detects bioactivity for up to 60% of compounds
 
 To analyze the Cell Painting data, we wanted to detect whether *any* impacts to morphology were observed for each compound, hereafter referred to as general bioactivity.
-To accomplish this, we summarized the image profiles using a Mahalanobis distance (MD)-based approach, as described previously [<sup>32</sup>](https://paperpile.com/c/2xFVvw/Ux9D4).
-We computed the MD of each profile relative to the DMSO vehicle controls using all features (global MD) and using subsets of features (categorical MDs) corresponding to specific channels and/or cell compartments.
+To accomplish this, we summarized the image profiles using a Mahalanobis distance (MD)-based approach, as described previously [<sup>32</sup>](https://paperpile.com/c/2xFVvw/Ux9D4). We computed the MD of each profile relative to the DMSO vehicle controls using all features (global MD) and using subsets of features (categorical MDs) corresponding to specific channels and/or cell compartments.
 Each of these distances is a measure of bioactivity, with larger values indicating that a profile has greater compound-induced perturbation of cell morphology.
 Next, we used concentration-response analysis as described for the cytotoxicity-related assays to determine PODs for each MD.
 We defined the general bioactivity PODs as the lowest POD among all of the statistically significant MD PODs for each compound.
 
-Overall, morphological profiling and concentration-response analysis detected bioactivity for 34-59% of compounds, depending on the cell representation (CellProfiler, CP-CNN, and DINO) and distance metric used (global vs categorical) (Figure 2B, Supplementary Table 3).
+Overall, morphological profiling and concentration-response analysis detected bioactivity for 34-59% of compounds, depending on the cell representation (CellProfiler, CP-CNN, and DINO) and distance metric used (global vs categorical) (Figure 2B, Table S3).
 The two deep learning-based methods (CP-CNN and DINO) detected ~50-60% compounds as active, as did CellProfiler in the categorical MD case.
 The one outlier, at 34% active compounds, was CellProfiler using the global metric.
 Comparing the alternate approaches for extracting image features, CP-CNN general bioactivity PODs were, on average, 2.0-fold higher (less sensitive) than CellProfiler and 1.5-fold higher than DINO general bioactivity PODs (Figure 2B and 2C).
@@ -175,7 +162,7 @@ There was no significant difference between CellProfiler and DINO general bioact
 
 The morphological profiles from Cell Painting detected activity at lower concentrations than the three cytotoxicity-related readouts.
 There was a clear ranking of assay sensitivity, by both the number of active compounds and the relative POD, with morphology \> MT \> cell counts \> LDH.
-The 121 compounds (12%) with PODs for all four assays qualitatively appear to be mainly conventionally toxic compounds (Supplementary Table 4) .
+The 121 compounds (12%) with PODs for all four assays qualitatively appear to be mainly conventionally toxic compounds (Table S4) .
 Among these 121 compounds, morphology PODs were 1.8-fold lower than MT, 3.9-fold lower than cell counts, and 7.0-fold lower than LDH (Figure 2D, all p-values \< 1.0 e-14).
 
 The assays' differences in sensitivity are consistent with assay biology.
@@ -199,7 +186,7 @@ To account for this, we compared the performance of the Cell Painting-based mode
 First, there were no significant differences in performance across representations (Table 1), thus we refer to morphology-based predictions from all representations hereafter as the "Cell Painting" predictions.
 We found that Cell Painting outperformed the technical baseline, which includes cell count, plate, and well position features, for the MT assay but not for the LDH assay (Table 1).
 To some degree, the cell count captures the same types of cytotoxicity captured by the LDH assay.
-As well, there is also a strong influence of technical plate and well position factors on the LDH readouts (Supplementary Figure 2A-C), which resulted in high variability between technical replicates.
+As well, there is also a strong influence of technical plate and well position factors on the LDH readouts (Figure S2A-C), which resulted in high variability between technical replicates.
 In fact, the R<sup>2</sup> between observed LDH readouts and predictions based on either Cell Painting or the technical baseline models were significantly higher than the R<sup>2</sup> between technical replicates of the same compound and concentration (mean difference = 0.20, p-value \< 1.0 e-14).
 The MT readouts were less influenced by well position, showed much better concordance across replicates, and were better predicted by Cell Painting than by the technical baseline.
 
@@ -210,8 +197,7 @@ The MT readouts were less influenced by well position, showed much better concor
 We converted the cytotoxicity endpoints into binary hit calls ("active" or "inactive", see methods for more details) for each compound-endpoint pair.
 Cell Painting features were median-aggregated across all concentrations to generate consensus profiles for each compound.
 Using these profiles, we trained XGBoost classifiers to predict compound cytotoxicity.
-Model performance was evaluated with AUROC (Area Under the Receiver Operating Characteristic curve), which reflects overall discriminative ability, and PRAUC (Area Under the Precision-Recall curve), which emphasizes performance on the typically smaller active class [<sup>35</sup>](https://paperpile.com/c/2xFVvw/Id6zF).
-Classification performance was benchmarked against models using cell count features and against a random baseline.
+Model performance was evaluated with AUROC (Area Under the Receiver Operating Characteristic curve), which reflects overall discriminative ability, and PRAUC (Area Under the Precision-Recall curve), which emphasizes performance on the typically smaller active class [<sup>35</sup>](https://paperpile.com/c/2xFVvw/Id6zF). Classification performance was benchmarked against models using cell count features and against a random baseline.
 
 Cell Painting predictions were highly accurate, particularly for LDH, with mean AUROC of 0.93 and PRAUC of 0.75 (Table 2).
 Performance was consistent across feature representations.
@@ -230,9 +216,9 @@ We compiled these annotations into a "target set library", and used overrepresen
 
 For example, we wanted to know which additional biological signals were captured by Cell Painting compared to the technical and cell count baseline for the MT predictions.
 Target set enrichment revealed that individual wells whose MT values were better predicted by Cell Painting (*n* = 138, 1.0%) than by the technical baseline were exposed to compounds that were significantly enriched in 480 molecular targets, many of which are in the cell cycle (29/97 targets, FDR = 1.46e-12), PI3K-Akt signaling (53/256 targets, FDR \< 1.0 e-14), MAPK signaling (47/249, FDR = 1.90e-12), and p53 signaling (21/64 targets, FDR = 3.43e-10) KEGG pathways.
-Individual wells that were better predicted by Cell Painting tended to have lower normalized MT values compared to all samples (Supplementary Figure 2D).
-The cell counts were also lower, although most were in a normal range between 500 and 1000 (Supplementary Figure 2E).
-We wanted to know whether the samples better predicted by Cell Painting had one or multiple distinct phenotypes, however clustering of morphological profiles based on pairwise cosine similarity between samples was mainly dominated by differences in cell count (Supplementary Figure 2F), highlighting the difficulties of using unsupervised approaches to analyze toxic exposures.
+Individual wells that were better predicted by Cell Painting tended to have lower normalized MT values compared to all samples (Figure S2D).
+The cell counts were also lower, although most were in a normal range between 500 and 1000 (Figure S2E).
+We wanted to know whether the samples better predicted by Cell Painting had one or multiple distinct phenotypes, however clustering of morphological profiles based on pairwise cosine similarity between samples was mainly dominated by differences in cell count (Figure S2F), highlighting the difficulties of using unsupervised approaches to analyze toxic exposures.
 Because Cell Painting encodes cell counts and technical effects in addition to biological signals [<sup>36</sup>](https://paperpile.com/c/2xFVvw/gLTfl), we expected that the samples with MT readouts better predicted by the technical baseline compared to Cell Painting would be random and have no meaningful biological signals.
 There were in fact no significantly enriched targets in this list of samples (*n* = 304, 2.3%), increasing confidence in our analysis.
 
@@ -244,7 +230,7 @@ These targets included many cytochrome P450 enzymes, for example CYP3A5, CYP3A43
 They also included many compounds that targeted G-protein coupled dopaminergic, serotonergic, and adrenergic receptors (amoxapine, apomorphine, aripiprazole, cisapride, clomipramine, domperidone, paliperidone, risperidone, and tamsulosin), and compounds that targeted xenobiotic transporters including efflux (ABCB1 and ABCG2) and uptake (SLCO1B1 and SLCO1B3) transporters.
 Similarly, analyzing the underpredicted cases (n = 131, 1.0%) revealed enrichment for compounds targeting distinct biological processes, including proteasome inhibition (specifically through bortezomib, carfilzomib, and ixazomib exposures), xenobiotic metabolism, bile acid synthesis, general cell stress, and apoptosis.
 Some of the prediction errors might be explained by assay interference by the administered compounds.
-For example, redox-active compounds can directly reduce the MT substrate and some compounds have a similar absorbance spectrum to the reduced substrate [<sup>37,38</sup>](https://paperpile.com/c/2xFVvw/chDf7+FpRy1), leading to higher MT assay readouts than supported by the actual level of mitochondrial activity.
+For example, redox-active compounds can directly reduce the MT substrate and some compounds have a similar absorbance spectrum to the reduced substrate [<sup>37,38</sup>](https://paperpile.com/c/2xFVvw/chDf7+FpRy1), leading to higher MT assay readouts than supported by the actual level of MT.
 
 <!-- source-page: 7 -->
 
@@ -259,8 +245,8 @@ By comparing predictive performance across these categories, and across differen
 
 We selected 48 cytotoxicity endpoints, 292 non-cytotoxicity cell-based endpoints, and 72 cell-free endpoints.
 Cytotoxicity endpoints were measured alongside many of the more specific ToxCast endpoints, resulting in many repeated cytotoxicity readouts for the same compound and often the same cell type.
-We therefore curated cytotoxicity endpoints to be consensus hit calls of cytotoxicity readouts aggregated across 28 cell types and 20 tissue sources resulting in 48 (consensus-level) readouts (Supplementary Figure 3A).
-While the cytotoxicity hit calls broadly agree across different cell and tissue types, there are distinct clusters of compounds with cytotoxicity in some cell (Supplementary Figure 3B) and tissue (Supplementary Figure 3C) types but not others.
+We therefore curated cytotoxicity endpoints to be consensus hit calls of cytotoxicity readouts aggregated across 28 cell types and 20 tissue sources resulting in 48 (consensus-level) readouts (Figure S3A).
+While the cytotoxicity hit calls broadly agree across different cell and tissue types, there are distinct clusters of compounds with cytotoxicity in some cell (Figure S3B) and tissue (Figure S3C) types but not others.
 
 Most of the cell-based endpoints were measured in cell types derived from liver (52%), vascular tissues (22%), and kidney (12%).
 They fall into six different categories, with 84% assessing the activity of individual molecules, such as mRNA transcript levels or activation/inhibition of specific receptors, and the remainder assessing perturbations at the pathway, subcellular, or cellular levels.
@@ -270,7 +256,7 @@ The cell-free targets come from 11 protein families, with the three most common 
 Overall, the median number of ToxCast compounds that overlapped with our tested compounds was 346 for cytotoxicity endpoints, 306 for cell-based endpoints, and 33 for cell-free endpoints, and the median percentage of active compounds was 21% for cytotoxicity, 7% for cell-based, and 41% for cell-free.
 Many of the positive hits in the cell-free assays were for the enzymatic activity of various cytochrome P450s, which are expected to interact with many xenobiotic compounds.
 
-<!-- source-page: 7-9 -->
+<!-- source-page: 7 -->
 
 ### 3.2 Cell Painting profiles predict activity in ToxCast assays
 
@@ -281,14 +267,14 @@ Cytotoxicity prediction performance was lower for the external ToxCast assays co
 Cell-based assays were next-most predictable, with cell-free assays being least, in line with Cell Painting being itself a cell-based assay.
 Assay activity prediction based on cell count alone outperforms the random baseline for cytotoxicity but not cell-based or cell-free assays (Figure 3).
 
-<!-- source-page: 9 -->
+<!-- source-page: 7 -->
 
 #### 3.2.1 Filtering out non-bioactive and cytotoxic compound concentrations did not improve mode-of-action prediction
 
 We hypothesized that filtering out Cell Painting profiles from non-bioactive concentrations would be more predictive of assay activity than including them.
 To test this, we created a second set of consensus profiles for each compound using only profiles from concentrations greater than the general bioactivity POD, and used these to predict assay activity (Figure 4A).
 There was only a small improvement in the AUROC scores for the bioactive-concentration versus all-concentration consensus profiles for the ToxCast cytotoxicity (mean difference = 0.04, FDR \< 1.0 e-14) and ToxCast cell-based (mean difference = 0.02, FDR = 0.002) assays.
-There were no significant differences in AUROC for the other assays, nor for the PRAUC scores for any assays (Supplementary Figure 4A).
+There were no significant differences in AUROC for the other assays, nor for the PRAUC scores for any assays (Figure S4A).
 We next hypothesized that additionally filtering out exposures that induced cytotoxicity would improve predictive performance for the targeted cell-based and cell-free assays because this would remove non-specific signals associated with general cell stress and death pathways, though this might be offset by the reduction in useful data points.
 To test this, we created a third set of consensus profiles using only concentrations greater than the morphological POD and lower than the cell count POD.
 As expected, filtering out the cytotoxic profiles resulted in significantly worse performance for both of the cytotoxicity assay categories (FDR \< 1.0 e-14 for both AUROC and PRAUC).
@@ -297,9 +283,9 @@ Contrary to our prediction, there were no significant differences in performance
 #### 3.2.2 Alternative cell representations perform similarly
 
 Although there is great enthusiasm for using deep learning strategies to extract features from raw pixels in images, the predictive performance was very similar across the different cell representations we tested.
-DINO had slightly higher median AUROC scores for the cell-based ToxCast assays (mean diff = 0.02 for both comparisons, p-value = 2.7e-5 and 7.4e-6 for CellProfiler and CP-CNN respectively); otherwise there were no significant differences in performance according to AUROC or PRAUC scores (Figure 4B, Supplementary Figure 4B).
+DINO had slightly higher median AUROC scores for the cell-based ToxCast assays (mean diff = 0.02 for both comparisons, p-value = 2.7e-5 and 7.4e-6 for CellProfiler and CP-CNN respectively); otherwise there were no significant differences in performance according to AUROC or PRAUC scores (Figure 4B, Figure S4B).
 
-<!-- source-page: 9-10 -->
+<!-- source-page: 7-10 -->
 
 # Discussion
 
@@ -309,11 +295,9 @@ These findings demonstrate the potential of morphological profiling as a sensiti
 
 We used public compound-target annotations and target set enrichment analysis to search for biological explanations for patterns in our imaging data.
 This approach is promising in that it did yield statistically significant protein target enrichment results in several cases.
-For example, we explored samples that were predicted (based on their morphological profiles) to have higher mitochondrial activity than actually observed in the MT assay.
-These "overpredicted" samples were enriched in compounds targeting xenobiotic metabolism enzymes (cytochrome P450 enzymes - CYPs) and neurotransmitter receptors, which regulate hepatic CYP expression and metabolism [<sup>39-41</sup>](https://paperpile.com/c/2xFVvw/0tIPR+rcLWn+2dqLc).
-We hypothesize that general metabolic reprogramming and CYP induction might decrease MT values - perhaps by shifting metabolism from oxidative phosphorylation to other pathways such as glycolysis that do not require mitochondrial activity [<sup>42</sup>](https://paperpile.com/c/2xFVvw/AIWIY) - without a dramatic change in cell morphology.
-Mitochondrial activity could be further reduced if the metabolic perturbations increase the reactive oxygen species (ROS) burden within the cells (a known impact of CYP inhibition [<sup>43</sup>](https://paperpile.com/c/2xFVvw/XWkMS)), which can directly impair the dehydrogenase enzyme activity required for MT substrate reduction [<sup>44,45</sup>](https://paperpile.com/c/2xFVvw/QFkT4+WBeH0).
-Nevertheless, because the available compound-target annotations are general and not directional, these results suggest testable hypotheses rather than definitive mechanisms.
+For example, we explored samples that were predicted (based on their morphological profiles) to have higher MT than actually observed in the MT assay.
+These "overpredicted" samples were enriched in compounds targeting xenobiotic metabolism enzymes (cytochrome P450 enzymes - CYPs) and neurotransmitter receptors, which regulate hepatic CYP expression and metabolism [<sup>39-41</sup>](https://paperpile.com/c/2xFVvw/0tIPR+rcLWn+2dqLc). We hypothesize that general metabolic reprogramming and CYP induction might decrease MT values - perhaps by shifting metabolism from oxidative phosphorylation to other pathways that do not require MT [<sup>42</sup>](https://paperpile.com/c/2xFVvw/AIWIY), such as glycolysis - without a dramatic change in cell morphology.
+Mitochondrial activity could be further reduced if the metabolic perturbations increase the reactive oxygen species (ROS) burden within the cells (a known impact of CYP inhibition [<sup>43</sup>](https://paperpile.com/c/2xFVvw/XWkMS)), which can directly impair the dehydrogenase enzyme activity required for MT substrate reduction [<sup>44,45</sup>](https://paperpile.com/c/2xFVvw/QFkT4+WBeH0). Nevertheless, because the available compound-target annotations are general and not directional, these results suggest testable hypotheses rather than definitive mechanisms.
 
 Predicting targeted assay endpoints from Cell Painting profiles can in some cases offer greater interpretability than interpreting specific morphological features themselves.
 Predictions from Cell Painting are also more practical than running hundreds of individual assays.
@@ -325,34 +309,25 @@ This performance gap suggests that future efforts to incorporate assay metadata 
 Unexpectedly, consensus profiles aggregated across all concentrations generally performed as well as, or better than, those filtered by bioactivity or cytotoxicity thresholds.
 One likely explanation is that averaging over more profiles reduces plate- and well-level variability, and this benefit outweighs any signal loss from including inactive concentrations.
 Alternatively, morphology-based bioactivity PODs defined by Mahalanobis distances may overestimate bioactivity PODs, causing the loss of informative profiles when used as filters.
-This hypothesis is consistent with previous work showing that Cell Painting Mahalanobis-based activity was detected at higher concentrations than activity observed in targeted ToxCast assays [<sup>46</sup>](https://paperpile.com/c/2xFVvw/05XcE).
-These findings suggest that our assay prediction benchmark (Figure 4A) could guide the development and evaluation of improved approaches for computing bioactivity PODs from high-dimensional omics data, an open challenge in toxicogenomics [<sup>47-49</sup>](https://paperpile.com/c/2xFVvw/Qmdr4+1BzuC+31q8t).
-Until more sensitive methods are available, aggregating all concentrations into a consensus profile appears to be a simple and robust strategy for supervised prediction.
+This hypothesis is consistent with previous work showing that Cell Painting Mahalanobis-based activity was detected at higher concentrations than activity observed in targeted ToxCast assays [<sup>46</sup>](https://paperpile.com/c/2xFVvw/05XcE). These findings suggest that our assay prediction benchmark (Figure 4A) could guide the development and evaluation of improved approaches for computing bioactivity PODs from high-dimensional omics data, an open challenge in toxicogenomics [<sup>47-49</sup>](https://paperpile.com/c/2xFVvw/Qmdr4+1BzuC+31q8t). Until more sensitive methods are available, aggregating all concentrations into a consensus profile appears to be a simple and robust strategy for supervised prediction.
 
 Beyond biological findings, our results also speak to practical considerations in feature extraction.
 In this analysis, state-of-the-art deep learning features had very similar predictive performance to traditional engineered image features from CellProfiler.
-While not unprecedented, this is a highly active area of machine learning research and new methods could show improved performance [<sup>50,51</sup>](https://paperpile.com/c/2xFVvw/4cg5D+FTTuD).
-We envision that our analysis could be used to benchmark novel methods for learning representation of cellular images.
-[<sup>50,51</sup>](https://paperpile.com/c/2xFVvw/4cg5D+FTTuD).
-Beyond predictive performance, the different cell representations we tested had relative strengths and limitations in their practical implementation.
-DINO was the easiest end-to-end solution because it was used off-the-shelf and did not require any cell or nucleus segmentation; however this also means that it did not produce profiles at the single-cell level, which might be desirable for some applications [<sup>52,53</sup>](https://paperpile.com/c/2xFVvw/9l7S7+sEdqd).
-CP-CNN was also relatively hands-free, with only a single tunable parameter (Cellpose 2.0 nuclei size).
+While not unprecedented, this is a highly active area of machine learning research and new methods could show improved performance [<sup>50,51</sup>](https://paperpile.com/c/2xFVvw/4cg5D+FTTuD). We envision that our analysis could be used to benchmark novel methods for learning representation of cellular images.
+[<sup>50,51</sup>](https://paperpile.com/c/2xFVvw/4cg5D+FTTuD). Beyond predictive performance, the different cell representations we tested had relative strengths and limitations in their practical implementation.
+DINO was the easiest end-to-end solution because it was used off-the-shelf and did not require any cell or nucleus segmentation; however this also means that it did not produce profiles at the single-cell level, which might be desirable for some applications [<sup>52,53</sup>](https://paperpile.com/c/2xFVvw/9l7S7+sEdqd). CP-CNN was also relatively hands-free, with only a single tunable parameter (Cellpose 2.0 nuclei size).
 CellProfiler, by comparison, requires tuning in two hands-on steps (nuclear and cell segmentation) each with dozens of potentially tunable parameters, though pipelines, once expertly tuned, can often be reused on similar data with little to no further tuning.
 However, the standard CellProfiler processing pipeline yields readily interpretable features and includes standardized QA/QC metrics such as blur, intensity, and saturation metrics, which have proved invaluable in our past experience.
 We highly recommend that similar quality checks be developed for deep learning cell representation pipelines.
 
-Although unrelated to morphology profiles, our analysis of the MT assay revealed that a small number of compounds increased rather than decreased mitochondrial activity.
+Although unrelated to morphology profiles, our analysis of the MT assay revealed that a small number of compounds increased rather than decreased MT.
 Three of the four strongest MT-increasing compounds (tolcapone, benzarone, tiratricol) are pharmaceuticals with off-target impacts on the liver that have been mechanistically linked to the uncoupling of oxidative phosphorylation [<sup>54-57</sup>](https://paperpile.com/c/2xFVvw/J0h9i+2QusE+ZtvBG+MfN8W), likely leading to compensatory increases in the rate of oxidative phosphorylation and higher MT readouts.
-The fourth, 2-ethylanthraquinone, is an industrial chemical produced or imported to the United States at 50-500 tons per year (CompTox Chemicals Dashboard, v2.5.3, accessed April 25, 2025) [<sup>58</sup>](https://paperpile.com/c/2xFVvw/DumQ2).
-Despite more than 100 publications in material sciences, little is known about its biological mode of action beyond limited ToxCast data [<sup>10,59,60</sup>](https://paperpile.com/c/2xFVvw/AVXwl+M8sMB+2qVy9).
-In our study it showed the highest potency and maximal response of all MT-increasing compounds.
-ToxCast results further indicate metabolic disruption, with activity detected in twelve nuclear receptor assays (e.g., RARA, NR1I2, ESR1, VDR, ESRRA, NR1I3, PGR, PPARG) at 1-45 uM in the absence of cytotoxicity (Supplementary Table 5), and decreased mitochondrial depolarization consistent with oxidative phosphorylation uncoupling [<sup>61</sup>](https://paperpile.com/c/2xFVvw/6d3PR).
-Taken together, these findings suggest that 2-ethylanthraquinone may perturb hepatocyte metabolism through uncoupling of oxidative phosphorylation.
+The fourth, 2-ethylanthraquinone, is an industrial chemical produced or imported to the United States at 50-500 tons per year (CompTox Chemicals Dashboard, v2.5.3, accessed April 25, 2025) [<sup>58</sup>](https://paperpile.com/c/2xFVvw/DumQ2). Despite more than 100 publications in material sciences, little is known about its biological mode of action beyond limited ToxCast data [<sup>10,59,60</sup>](https://paperpile.com/c/2xFVvw/AVXwl+M8sMB+2qVy9). In our study it showed the highest potency and maximal response of all MT-increasing compounds.
+ToxCast results further indicate metabolic disruption, with activity detected in twelve nuclear receptor assays (e.g., RARA, NR1I2, ESR1, VDR, ESRRA, NR1I3, PGR, PPARG) at 1-45 uM in the absence of cytotoxicity (Table S5), and decreased mitochondrial depolarization consistent with oxidative phosphorylation uncoupling [<sup>61</sup>](https://paperpile.com/c/2xFVvw/6d3PR). Taken together, these findings suggest that 2-ethylanthraquinone may perturb hepatocyte metabolism through uncoupling of oxidative phosphorylation.
 Given both the potency we observed and its widespread industrial use, follow-up studies to confirm its mode-of-action are recommended.
 
 Future work could advance the utility of imaging and omics data in compound toxicity screening.
-Publicly available training data (both from targeted assays and *in vivo* exposures) is precious and every effort should be made to document experimental design parameters, harmonize units and other nomenclature, and improve the translation between data sources via pharmacokinetic and chemical partitioning models [<sup>62,63</sup>](https://paperpile.com/c/2xFVvw/ZSohl+rg6pr).
-Given the relative scarcity of well-annotated, targeted training data, comparisons are often made across datasets collected for different cell types, which may impact results and prevent accurate predictions.
+Publicly available training data (both from targeted assays and *in vivo* exposures) is precious and every effort should be made to document experimental design parameters, harmonize units and other nomenclature, and improve the translation between data sources via pharmacokinetic and chemical partitioning models [<sup>62,63</sup>](https://paperpile.com/c/2xFVvw/ZSohl+rg6pr). Given the relative scarcity of well-annotated, targeted training data, comparisons are often made across datasets collected for different cell types, which may impact results and prevent accurate predictions.
 Future work by the OASIS Consortium will collect Cell Painting data for additional cell types for a consistent set of compounds, enabling direct comparisons of how well cell types with diverse lineages predict the same targeted assays.
 For a subset of compounds and cell types, it will also capture transcriptomics and proteomic data, enabling a comparison and combination of these data types with imaging, which may prove powerfully predictive.
 
@@ -374,8 +349,7 @@ For a subset of compounds and cell types, it will also capture transcriptomics a
 
 # Acknowledgements
 
-This work was supported by Banting and SOT Syngenta postdoctoral fellowships to JE, a National Institutes of Health grant (NIGMS R35 GM122547 to AEC), the Novo Nordisk Foundation (NNF21SA0072102), and the Omics for Assessing Signatures for Integrated Safety (OASIS) Consortium, which is supported by a grant from the Massachusetts Life Sciences Center (MLSC) Bits to Bytes Capital Call grant to SS, as well as partnered resources and expertise from industry partners and in-kind contributions from academic, government, non-governmental organizations, and biotech partners (listed here <u>[https://oasisconsortium.org/members](https://oasisconsortium.org/members/))</u>.
-The authors thank Nisha Sipes and Katie Paul Friedman for their insightful reviews.
+This work was supported by Banting and SOT Syngenta postdoctoral fellowships to JE, a National Institutes of Health grant (NIGMS R35 GM122547 to AEC), the Novo Nordisk Foundation (NNF21SA0072102), and the Omics for Assessing Signatures for Integrated Safety (OASIS) Consortium, which is supported by a grant from the Massachusetts Life Sciences Center (MLSC) Bits to Bytes Capital Call grant to SS, as well as partnered resources and expertise from industry partners and in-kind contributions from academic, government, non-governmental organizations, and biotech partners (listed here <u>[https://oasisconsortium.org/consortium-members/](https://oasisconsortium.org/consortium-members/))</u>. The authors thank Nisha Sipes and Katie Paul Friedman for their insightful reviews.
 
 # Author contributions
 
@@ -397,7 +371,7 @@ Overview of the experimental design.***
 Overview of the experimental design.](figures/figure-1.jpg)
 
 *Primary human hepatocytes were exposed to eight concentrations of 1,085 compounds (2 replicates).
-Three complementary assays (Cell Painting morphology, membrane rupture, and mitochondrial activity) were used to measure cellular responses to chemical exposure.
+Three complementary assays (Cell Painting morphology, membrane rupture, and MT) were used to measure cellular responses to chemical exposure.
 The ultimate goal is to predict several outcomes (right) from the processed readouts.
 See also Figure S1.*
 
@@ -708,17 +682,14 @@ Because the hepatocytes were obtained as a pooled, mixed-sex donor population, s
 
 ### Compound selection
 
-The OASIS Consortium curated a total of 1,495 compounds known to be of interest to the hepatotoxicology research community by integrating data from established toxicological resources, including DrugMatrix, TG-GATES, ToxRefDB, DILIlist and DILIrank [<sup>64-69</sup>](https://paperpile.com/c/2xFVvw/LltnY+JDli7+TgolH+YW2Dr+XRSFV+NPozc).
-The curated dataset has been released via https://oasisconsortium.org/oasis-compounds.
-Compounds were cross-referenced using InChIKey identifiers to remove duplicates.
+The OASIS Consortium curated a total of 1,495 compounds known to be of interest to the hepatotoxicology research community by integrating data from established toxicological resources, including DrugMatrix, TG-GATES, ToxRefDB, DILIlist and DILIrank [<sup>64-69</sup>](https://paperpile.com/c/2xFVvw/LltnY+JDli7+TgolH+YW2Dr+XRSFV+NPozc). The curated dataset has been released via https://oasisconsortium.org/oasis-compounds. Compounds were cross-referenced using InChIKey identifiers to remove duplicates.
 The finalized list was a subset of 1,085 compounds that could be sourced from MedChemExpress.
 
 ### Compound treatment
 
 Once cells were attached, the medium was replaced with Complete CP medium containing test compounds at a 2x final concentration using the CyBio Felix liquid handler.
 Plates were then returned to the incubator for 44 hours at 37 degrees C, 5% CO2, until the assay endpoints were measured.
-This timepoint was selected to balance convenience and prior studies indicating 48 hours maximizes sensitivity relative to 24 hours for chemical perturbations [<sup>70</sup>](https://paperpile.com/c/2xFVvw/3SrUM).
-Each compound was tested at eight concentrations on a semi-log scale, with two biological replicates (n = 2 wells) per compound-concentration group.
+This timepoint was selected to balance convenience and prior studies indicating 48 hours maximizes sensitivity relative to 24 hours for chemical perturbations [<sup>70</sup>](https://paperpile.com/c/2xFVvw/3SrUM). Each compound was tested at eight concentrations on a semi-log scale, with two biological replicates (n = 2 wells) per compound-concentration group.
 DMSO solvent controls (n = 69 wells) were included on each plate, with fixed positions across plates chosen to represent all rows and columns.
 Compound-concentration biological replicates were always on different plates.
 The well position of compounds within plates were randomized.
@@ -737,8 +708,7 @@ We used the Cell Painting v3 protocol [<sup>70</sup>](https://paperpile.com/c/2x
 Initially, PhenoVue 641 Mitochondrial Stain in CP complete medium was added at a final concentration of 500 nM to HBSS-washed cells as described above, and cells were incubated for 30 minutes at 37 degrees C, 5% CO2.
 Cells were then fixed with 4% paraformaldehyde (PFA) for 20 minutes at room temperature and washed four times with HBSS.
 The remaining dyes, including PhenoVue Fluor 488 Concanavalin A (5 ug/mL), PhenoVue 512 Nucleic Acid Stain (1 ug/mL), PhenoVue Fluor 555 WGA (1.5 ug/mL), and PhenoVue Fluor 568 Phalloidin (8 nM), were added.
-We reduced the concentration of PhenoVue 512 Nucleic Acid Stain (RNA) from 3 ug/mL to 1 ug/mL to reduce channel similarity to the neighboring WGP channel; otherwise, the protocol was followed as published [<sup>70</sup>](https://paperpile.com/c/2xFVvw/3SrUM).
-Images were acquired on an Operetta imaging system (Revvity) using a 40x water objective in non-confocal mode.
+We reduced the concentration of PhenoVue 512 Nucleic Acid Stain (RNA) from 3 ug/mL to 1 ug/mL to reduce channel similarity to the neighboring WGP channel; otherwise, the protocol was followed as published [<sup>70</sup>](https://paperpile.com/c/2xFVvw/3SrUM). Images were acquired on an Operetta imaging system (Revvity) using a 40x water objective in non-confocal mode.
 We chose to image at 40x, a higher resolution than the 20x that is typical for the Cell Painting assay [<sup>70</sup>](https://paperpile.com/c/2xFVvw/3SrUM), to maximize the chances of capturing phenotypes.
 We captured more fields of view (15 vs 9) to compensate for the smaller number of cells per field.
 Full-resolution images (2160x2160) were captured with binning set to 1.
@@ -746,12 +716,9 @@ A single z-plane was acquired for each of the five fluorescent channels and one 
 
 ### Image processing
 
-*CellProfiler.* We used CellProfiler bioimage analysis software (version 4.2.4) [<sup>29</sup>](https://paperpile.com/c/2xFVvw/Xq4Xw) to process the images using classical algorithms following a prior protocol [<sup>70</sup>](https://paperpile.com/c/2xFVvw/3SrUM).
-Flat field correction was applied to the images [<sup>71</sup>](https://paperpile.com/c/2xFVvw/T7Dx2).
-We segmented nuclei using Cellpose (version 2.3.2) [<sup>72</sup>](https://paperpile.com/c/2xFVvw/OXvQx) as a CellProfiler plugin [<sup>73</sup>](https://paperpile.com/c/2xFVvw/nNLWc) with the pre-trained "nuclei" model and minimum object size of 1500 px) and cells and measured feature categories including fluorescence intensity, texture, granularity, density, and location (see http://cellprofiler-manual.s3.amazonaws.com/CellProfiler-4.2.4/index.html for more details) across all segmented compartments and all imaged channels.
+*CellProfiler.* We used CellProfiler bioimage analysis software (version 4.2.4) [<sup>29</sup>](https://paperpile.com/c/2xFVvw/Xq4Xw) to process the images using classical algorithms following a prior protocol [<sup>70</sup>](https://paperpile.com/c/2xFVvw/3SrUM). Flat field correction was applied to the images [<sup>71</sup>](https://paperpile.com/c/2xFVvw/T7Dx2). We segmented nuclei using Cellpose (version 2.3.2) [<sup>72</sup>](https://paperpile.com/c/2xFVvw/OXvQx) as a CellProfiler plugin [<sup>73</sup>](https://paperpile.com/c/2xFVvw/nNLWc) with the pre-trained "nuclei" model and minimum object size of 1500 px) and cells and measured feature categories including fluorescence intensity, texture, granularity, density, and location (see http://cellprofiler-manual.s3.amazonaws.com/CellProfiler-4.2.4/index.html for more details) across all segmented compartments and all imaged channels.
 We obtained 5,640 feature measurements from each of about 800 cells per well.
-We parallelized our image processing workflow using Distributed-CellProfiler [<sup>74</sup>](https://paperpile.com/c/2xFVvw/xj8oL).
-The image analysis pipelines we used are available in the Cell Painting Gallery [<sup>75</sup>](https://paperpile.com/c/2xFVvw/hsX8C).
+We parallelized our image processing workflow using Distributed-CellProfiler [<sup>74</sup>](https://paperpile.com/c/2xFVvw/xj8oL). The image analysis pipelines we used are available in the Cell Painting Gallery [<sup>75</sup>](https://paperpile.com/c/2xFVvw/hsX8C).
 
 *CellPainting-CNN (CP-CNN)*.
 Images were converted to JPEG-XL format with the -q 99 option.
@@ -767,10 +734,8 @@ DINO profiles contain 4,608 features.
 
 ### ToxCast data curation
 
-ToxCast includes data from different assays, each of which can have one or multiple endpoints, measured across different tissue, cell, and cell-free models from different species [<sup>12</sup>](https://paperpile.com/c/2xFVvw/yvOvE).
-Each endpoint was measured at multiple compound concentrations, often along with cell viability or cytotoxicity endpoints run in parallel to the assay.
-For each compound-endpoint concentration-response series, the ToxCast authors calculate a hit call from 0 to 1 (with 1 being high confidence that there is a change of activity relative to the control), and an AC50 value (concentration at which 50% of the maximum endpoint value is observed) [<sup>12</sup>](https://paperpile.com/c/2xFVvw/yvOvE).
-We considered any hit call \>0.9 to be a positive hit.
+ToxCast includes data from different assays, each of which can have one or multiple endpoints, measured across different tissue, cell, and cell-free models from different species [<sup>12</sup>](https://paperpile.com/c/2xFVvw/yvOvE). Each endpoint was measured at multiple compound concentrations, often along with cell viability or cytotoxicity endpoints run in parallel to the assay.
+For each compound-endpoint concentration-response series, the ToxCast authors calculate a hit call from 0 to 1 (with 1 being high confidence that there is a change of activity relative to the control), and an AC50 value (concentration at which 50% of the maximum endpoint value is observed) [<sup>12</sup>](https://paperpile.com/c/2xFVvw/yvOvE). We considered any hit call \>0.9 to be a positive hit.
 We matched ToxCast compounds to our tested compound library using the EPA's DTXSID.
 
 We accessed all assay endpoint data from *invitrodb* version 4.1 using the SQLalchemy version 1.4.54 Python package.
@@ -779,8 +744,7 @@ We excluded QA/QC endpoints like background fluorescence, the individual ch1 and
 When the same endpoint was measured after multiple exposure time points, we kept the single timepoint that most closely matched our experimental design (44 hour compound exposure).
 Any positive hit call with an associated AC50 higher than 100uM (the highest concentration we tested) was set to 0 because the activity was not observed in our tested range.
 
-A significant proportion of the specific cell-based assay endpoint AC50s are at the same or higher concentrations than where cytotoxicity is observed; these are more indicative of general cell stress than of the specific modes-of-action that the endpoints were intended to measure [<sup>76,77</sup>](https://paperpile.com/c/2xFVvw/uvFXc+SRniu).
-We performed extra assay filtering and curation steps to account for confounding between specific endpoints and cytotoxicity endpoints.
+A significant proportion of the specific cell-based assay endpoint AC50s are at the same or higher concentrations than where cytotoxicity is observed; these are more indicative of general cell stress than of the specific modes-of-action that the endpoints were intended to measure [<sup>76,77</sup>](https://paperpile.com/c/2xFVvw/uvFXc+SRniu). We performed extra assay filtering and curation steps to account for confounding between specific endpoints and cytotoxicity endpoints.
 We computed "consensus cytotoxicity hit calls" of assays marked with a 1 in the "cell_viability_assay" ToxCast metadata across different biological categories defined by "cell_short_name"and "tissue" ToxCast metadata annotations.
 For each cell and tissue category, we considered a compound to have a positive cytotoxicity hit call if 20% or more of the individual hit calls were positive and defined the AC50 as the median AC50 of all of the positive hit calls.
 Next, we compared each specific cell-based assay endpoint AC50 to the closest matched consensus cytotoxicity AC50 (cell-level if available, tissue-level otherwise).
@@ -799,13 +763,11 @@ Finally, profiles were filtered to remove low variability and highly correlated 
 
 ### Mahalanobis distance calculations
 
-Various Mahalanobis distances were computed between each morphological profile and the centroid of the DMSO samples on the same plate, as described previously [<sup>32</sup>](https://paperpile.com/c/2xFVvw/Ux9D4).
-The global Mahalanobis distance is calculated using entire profiles that include all measured features.
+Various Mahalanobis distances were computed between each morphological profile and the centroid of the DMSO samples on the same plate, as described previously [<sup>32</sup>](https://paperpile.com/c/2xFVvw/Ux9D4). The global Mahalanobis distance is calculated using entire profiles that include all measured features.
 The categorical Mahalanobis distances are computed for "mini" profiles, each containing a subset of related features.
 The set of categories depends on the type of cell representation.
 
-CellProfiler produces named, interpretable features and so it is possible to group them into categories according to both the subcellular compartments imaged by each channel (DNA, ER, RNA, actin+golgi, and mitochondria) and the various segmented parts of each cell (entire cell, cytoplasm only, and nucleus only) [<sup>29</sup>](https://paperpile.com/c/2xFVvw/Xq4Xw).
-In addition to the five channels, we also considered the "AreaShape" features as a sixth category since these do not depend on any individual channel.
+CellProfiler produces named, interpretable features and so it is possible to group them into categories according to both the subcellular compartments imaged by each channel (DNA, ER, RNA, actin+golgi, and mitochondria) and the various segmented parts of each cell (entire cell, cytoplasm only, and nucleus only) [<sup>29</sup>](https://paperpile.com/c/2xFVvw/Xq4Xw). In addition to the five channels, we also considered the "AreaShape" features as a sixth category since these do not depend on any individual channel.
 This resulted in 6\*3 = 18 categories, for example Cells_RNA or Cytoplasm_AreaShape.
 
 Cell representations from deep learning methods do not have features with meaningful names.
@@ -816,8 +778,7 @@ The DINO architecture produces one set of embeddings for each individual image, 
 
 ### Concentration-response analysis
 
-Curve fitting was performed on all Mahalanobis distances (both global and categorical, where applicable), cell count, and normalized MT and LDH biochemical assays according to conventional approaches used by the regulatory toxicology community [<sup>48,79</sup>](https://paperpile.com/c/2xFVvw/Hj8YM+1BzuC), here using the fastbmdR package (v0.0.0.9, [<u>https://github.com/jessica-ewald/fastbmdR</u>](https://github.com/jessica-ewald/fastbmdR))[<sup>80</sup>](https://paperpile.com/c/2xFVvw/Zd6QD).
-Prior to fitting, concentrations were converted to a logarithmic scale (base 10).
+Curve fitting was performed on all Mahalanobis distances (both global and categorical, where applicable), cell count, and normalized MT and LDH biochemical assays according to conventional approaches used by the regulatory toxicology community [<sup>48,79</sup>](https://paperpile.com/c/2xFVvw/Hj8YM+1BzuC), here using the fastbmdR package (v0.0.0.9, [<u>https://github.com/jessica-ewald/fastbmdR</u>](https://github.com/jessica-ewald/fastbmdR))[<sup>80</sup>](https://paperpile.com/c/2xFVvw/Zd6QD). Prior to fitting, concentrations were converted to a logarithmic scale (base 10).
 Eight parametric models (Exp2, Exp3, Exp4, Exp5, Poly2, Lin, Power, Hill, as defined here [<sup>79</sup>](https://paperpile.com/c/2xFVvw/Hj8YM)) were fit to the Mahalanobis distances, cell count, and biochemical assay readouts for each compound.
 Curve fits were filtered out if the standard deviation of the residuals was more than three times the standard deviation of the DMSO controls.
 The best-fit model for each readout for each compound was defined as the one with the lowest standard deviation of the residuals.
@@ -827,12 +788,11 @@ Since each DMSO MD represents the distance from the DMSO centroid, only unusuall
 Benchmark doses were filtered out if the ratio between the upper and lower 95th confidence intervals was greater than 40 or if the benchmark dose was higher than the highest tested concentration.
 For morphology readouts, compound-level PODs were defined as the lowest POD among all of the global and categorical Mahalanobis distance PODs that passed the QA/QC filters for each compound.
 
-<!-- source-page: e5 -->
+<!-- source-page: e4-e5 -->
 
 ### Supervised analysis
 
-XGBoost was used to predict various continuous and categorical labels from different sources [<sup>81</sup>](https://paperpile.com/c/2xFVvw/iyfRv).
-For all scenarios, we used five-fold cross-validation with compound-level splits, stratified to preserve the proportion of active and inactive compounds in each fold.
+XGBoost was used to predict various continuous and categorical labels from different sources [<sup>81</sup>](https://paperpile.com/c/2xFVvw/iyfRv). For all scenarios, we used five-fold cross-validation with compound-level splits, stratified to preserve the proportion of active and inactive compounds in each fold.
 Default parameters were used, and the exact splits can be reproduced from the linked GitHub repository.
 For continuous outcomes, we trained XGBRegressor models and compared performance to a mean predictor baseline and to a "technical metadata" baseline with cell count, batch, plate, and well position features.
 We assessed performance with R<sup>2</sup> and RMSE and MAE.
@@ -855,21 +815,21 @@ For the Cell Painting, MT, and LDH assays, 5,500 cells were seeded per well acro
 These values reflect the initial seeding density, as some cell loss occurred during compound treatment.
 The final cell counts at the time of assay readout were measured and are reported in the Metadata_Count_Cells column of the processed dataset deposited in the Cell Painting Gallery (see Key Resources Table).
 
-# Supplementary table titles
+# Supplemental table titles
 
-Supplementary Table 1.
+Table S1.
 OASIS Compound List, related to Figure 1
 
-Supplementary Table 2.
+Table S2.
 Cytotoxicity points-of-departure, related to Figure 2
 
-Supplementary Table 3.
+Table S3.
 Cell Painting points-of-departure, related to Figure 2
 
-Supplementary Table 4.
+Table S4.
 Summary of activity across all assays, related to Figure 2
 
-Supplementary Table 5.
+Table S5.
 Toxcast assay bioactivity data for 2-Ethylanthraquinone, related to Figure 2
 
 # Supplemental figure legends
@@ -900,8 +860,7 @@ All color scales are linear between the minimum and maximum observed values in t
 ![Figure S3.
 ToxCast assay binarization.](figures/figure-s3.jpg)
 
-Detailed methods for binarizing ToxCast assays are shown in panel A.
-Cytotoxicity AC50 values are shown across the 12 cell lines (C) and tissues (D) that had more than 800 OASIS compounds.
+Detailed methods for binarizing ToxCast assays are shown in panel A. Cytotoxicity AC50 values are shown across the 12 cell lines (C) and tissues (D) that had more than 800 OASIS compounds.
 Compounds that either had an AC50 above 100 or did not have a detected AC50 were set to 100, the upper range of OASIS concentrations.
 Lower values indicate greater cytotoxicity because it occurred at a lower concentration, with color on a linear scale from 0 to 100.
 
@@ -916,8 +875,6 @@ Declaration of interests
 
 The Authors declare the following competing interests: B.A.C., S.S., and A.E.C. serve as scientific advisors for companies that use image-based profiling and Cell Painting (B.A.C.: Marble Therapeutics, A.E.C: Recursion, SyzOnc, Quiver Bioscience, S.S.: Waypoint Bio, Dewpoint Therapeutics, Deepcell) and receive honoraria for occasional scientific visits to pharmaceutical and biotechnology companies.
 K.J.K. is a consultant for Tome Biosciences, AlloDx, and Vor Biosciences, and a member of the scientific advisory board of Nurture Genomics.
-All other authors declare no competing interests.
-
 Disclaimer
 
 This manuscript has been reviewed by the Center for Computational Toxicology and Exposure, Office of Research and Development, U.S. Environmental Protection Agency, and approved for publication.

@@ -159,6 +159,9 @@ The divergence is localized to POD-derived aggregation and must not be attribute
 
 ## Figure 4B and supplemental Figure S4B
 
+The representation distributions and direct paired summaries below use the committed metric Parquets and the analysis in `3_2_3_compare_endpoints_detail.ipynb`.
+The mixed-model and Tukey statistics are stored in `3_2_2_compare_concs_reps.ipynb`, which evaluates both concentration strategies and representation contrasts.
+
 The table uses matched `AggType == "all"`, `Model_type == "Actual"` keys.
 All ToxCast values are bit-exact between the committed and current base layers, so one value represents both.
 
@@ -179,13 +182,13 @@ All ToxCast values are bit-exact between the committed and current base layers, 
 
 On the 267 matched cell-based endpoints, DINO's AUROC median advantage is 0.022090 over CellProfiler and 0.015873 over CP-CNN, which supports the paper's approximately 0.02 median statement.
 The paired mean advantages are smaller at 0.011882 and 0.010790.
-The notebook mixed-model effects are the same 0.0119 and 0.0108, with Tukey p-values 0.0733 and 0.1154 rather than the camera-ready 2.7e-5 and 7.4e-6.
+The `3_2_2_compare_concs_reps.ipynb` mixed-model effects are the same 0.0119 and 0.0108, with Tukey p-values 0.0733 and 0.1154 rather than the camera-ready 2.7e-5 and 7.4e-6.
 Direct paired t-test p-values are 0.1847 and 0.2105.
 The magnitude claim and practical similarity hold, while the published significance claim does not reproduce from the committed statistical code.
 
-All notebook PRAUC representation contrasts are non-significant after Tukey adjustment.
+All PRAUC representation contrasts in `3_2_2_compare_concs_reps.ipynb` are non-significant after Tukey adjustment.
 The direct DINO cell-based PRAUC mean advantages are 0.012775 over CellProfiler and 0.011606 over CP-CNN, with unadjusted paired p-values 0.0313 and 0.0498, but the notebook Tukey values are 0.4726 and 0.5384 and the effects are small.
-The one notebook AUROC exception is DINO below CP-CNN by 0.053944 on ToxCast cytotoxicity, with Tukey p = 0.0493; its median difference is 0.009763 in the opposite direction because endpoint-level changes are heterogeneous.
+The one `3_2_2_compare_concs_reps.ipynb` AUROC exception is DINO below CP-CNN by 0.053944 on ToxCast cytotoxicity, with Tukey p = 0.0493; its median difference is 0.009763 in the opposite direction because endpoint-level changes are heterogeneous.
 This is a statistical and estimand exception, not a broad practical advantage for any representation.
 The ordering across assay types and the near-overlap of representation distributions in Figure 4B and supplemental Figure S4B remain intact.
 
