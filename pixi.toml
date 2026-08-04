@@ -1,9 +1,9 @@
 ## Python environments for reproducing paper 1A.
 ##
-## Two environments, because the repo mixes two incompatible polars API
-## generations. No single polars version runs everything; no single notebook
-## needs both, so a two-environment split covers all of it without editing
-## any notebook.
+## Three environments: two preserve the paper reproduction's incompatible
+## polars API generations, and one isolates the JPEG XL image archive tools.
+## No single polars version runs all paper notebooks; no single notebook needs
+## both, so the existing two-environment split remains unchanged.
 ##
 ##   pipeline   polars 0.20.0   melt / pl.count() / pivot(columns=)
 ##     1_snakemake/preprocessing/stats.py
@@ -17,6 +17,8 @@
 ##     manuscript_notebooks/3_2_3_compare_endpoints_detail.ipynb
 ##     manuscript_notebooks/SI_compare_processing.ipynb
 ##     other_notebooks/05_compare_pods_transforms.ipynb
+##
+##   images     JPEG XL archive conversion, indexing, and validation
 ##
 ## This is a defect in the published repo, not a packaging preference: the
 ## pinned polars==0.20.0 in requirements.txt cannot run the four notebooks in
@@ -123,6 +125,25 @@ sh = "==2.2.4"
 jupyterlab = "*"
 ipykernel = "*"
 
+# ---------------------------------------------------------------------------
+# images: JPEG XL image archive workflow and tests
+# ---------------------------------------------------------------------------
+[feature.images.dependencies]
+python = "3.11.*"
+
+[feature.images.pypi-dependencies]
+imagecodecs = "==2026.1.14"
+numpy = "==1.26.4"
+tifffile = "==2026.3.3"
+boto3 = "==1.43.64"
+botocore = "==1.43.64"
+polars = "==1.43.2"
+pyarrow = "==25.0.0"
+pytest = "==9.1.1"
+ruff = "==0.16.1"
+pyright = { version = "==1.1.411", extras = ["nodejs"] }
+
 [environments]
 pipeline = ["pipeline"]
 notebooks = ["notebooks"]
+images = ["images"]

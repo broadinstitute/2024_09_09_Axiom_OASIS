@@ -76,13 +76,16 @@
             pixi
             rEnv
             awscli2
+            libjxl
+            libtiff
+            uv
           ];
 
           shellHook = ''
             echo "2024_09_09_Axiom_OASIS - reproduction environment"
             echo ""
-            echo "  R + awscli : from Nix (this shell)"
-            echo "  Python     : pixi run -e pipeline / -e notebooks"
+            echo "  R + tools  : from Nix (R, awscli, libjxl, libtiff, uv)"
+            echo "  Python     : pixi run -e pipeline / -e notebooks / -e images"
             echo ""
             echo "Pipeline runs from 1_snakemake/ (R scripts source ./concresponse/*.R):"
             echo "  cd 1_snakemake"

@@ -1,0 +1,21 @@
+[Unit]
+Description=Build the local Axiom OASIS JPEG XL archive
+Wants=network-online.target
+After=network-online.target
+ConditionPathIsMountPoint=/work/datasets
+
+[Service]
+Type=exec
+WorkingDirectory=/work/users/shsingh/GitHub/oasis/2024_09_09_Axiom_OASIS
+Environment=PYTHONUNBUFFERED=1
+UMask=0007
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=6
+ExecStart=/run/current-system/sw/bin/nix develop path:. --command pixi run -e images python -m oasis_images archive --contract images/source.toml --workers 32 --max-in-flight 64 --max-consecutive-failures 32
+KillSignal=SIGINT
+TimeoutStopSec=10min
+Restart=on-abnormal
+
+[Install]
+WantedBy=default.target
