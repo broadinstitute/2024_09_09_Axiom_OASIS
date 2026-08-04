@@ -62,7 +62,7 @@ pulp = "==2.7.0"
 # 0_prepare_data/4A_download_compiled_inputs.py imports requests. It is
 # currently satisfied transitively, but nothing declares it, so a fresh solve
 # could drop it and break the documented data step.
-requests = "==2.32.4"
+requests = "==2.33.0"
 pandas = "==2.2.2"
 polars = "==0.20.0"
 pyarrow = "==14.0.1"
@@ -79,7 +79,7 @@ tqdm = "==4.66.5"
 matplotlib = "==3.9.2"
 seaborn = "==0.13.2"
 plotnine = "==0.13.6"
-sh = "==2.0.7"
+sh = "==2.2.4"
 # concresponse/ap.py: `from copairs import map`. Absent from requirements.txt
 # and unpinned anywhere, so this version is a guess. Only the *_ap.json configs
 # reach this code path; the three manuscript configs do not.
@@ -118,8 +118,8 @@ upsetplot = "==0.9.0"
 venn = "==0.1.3"
 pycytominer = "==1.2.0"
 tqdm = "==4.66.5"
-pillow = "==10.4.0"
-sh = "==2.0.7"
+pillow = "==12.3.0"
+sh = "==2.2.4"
 jupyterlab = "*"
 ipykernel = "*"
 
