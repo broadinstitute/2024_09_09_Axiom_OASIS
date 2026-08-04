@@ -8,3 +8,9 @@ flake.lock linguist-generated=true
 # raw JSON. Do not swap this for nbstripout: that discards the outputs.
 *.ipynb diff=jupyternotebook
 *.ipynb merge=jupyternotebook
+
+# Published paper sources are immutable binary evidence.
+paper/sources/*.pdf binary
+paper/sources/*.docx binary
+paper/sources/*.xlsx binary
+paper/figures/*.jpg binary
