@@ -25,6 +25,29 @@ sha256sum -c SHA256SUMS
 The original 135 MB submission bundle contains draft manuscripts, administrative documents, and redundant figure sources.
 It is deliberately excluded from Git because the compact published source set is sufficient for this workflow.
 
+## Run the executable paper
+
+Run the tracked-data reproduction from the repository root:
+
+```bash
+uv run paper/reproduce.py
+```
+
+The command evaluates or accounts for every row in `targets.tsv` using only committed inputs.
+It writes a deterministic Markdown report, a machine-readable JSON report, summary tables, and simplified SVG figures under `paper/reproduction/`.
+The standalone Python environment is pinned by `reproduce.py.lock`.
+The canonical outputs are committed, and the test suite fails if they no longer match a fresh render.
+Use `uv run paper/reproduce.py --list` to list target IDs.
+For a focused scratch report, repeat `--target ID` as needed and set `--output`, for example `uv run paper/reproduce.py --target FILTER-002 --output /tmp/oasis-filter-002`.
+
+Each target keeps four ideas separate: the historical ledger status, this run's execution outcome, the available evidence strength, and the target-specific acceptance class.
+An execution outcome of `checked` means that the declared tracked-input checks passed; it does not claim that upstream workflows or the full acceptance target were regenerated.
+A reported blocker or out-of-scope target is a complete accounting result, not a reproduced result.
+The command fails if the explicit recipe registry no longer covers the ledger exactly or if a declared check contradicts the tracked evidence.
+
+This is the small, repository-only entry point for reviewing the whole paper.
+The longer GPU workflow in `REPRODUCING.md` remains the path for regenerating upstream compiled artifacts from downloaded raw inputs.
+
 ## Agent workflow
 
 1. Read this file, the relevant section of `paper.md`, and the existing top-level `REPRODUCING.md`.
