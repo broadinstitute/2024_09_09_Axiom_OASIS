@@ -49,15 +49,12 @@ on fewer GPUs.
 Everything below assumes you are inside the Nix shell.
 
 ```bash
-nix develop
+nix develop path:.
 pixi install -e pipeline
 pixi install -e notebooks
 ```
 
-`nix develop` sets `R_LIBS_USER=/dev/null` (so the `.R` scripts cannot attempt
-runtime `install.packages`) and puts the host driver's `libcuda.so` on
-`LD_LIBRARY_PATH` (without which cupy fails with
-`cudaErrorInsufficientDriver`).
+`nix develop path:.` sets `R_LIBS_USER=/dev/null` so the `.R` scripts cannot attempt runtime `install.packages`, and it puts the host driver's `libcuda.so` on `LD_LIBRARY_PATH` to prevent `cudaErrorInsufficientDriver` from cupy.
 
 **2. Data.** 0.86 GB from Zenodo record 17067683 (open access, CC-BY-4.0,
 DOI 10.5281/zenodo.17067683). This is a complete substitute for scripts

@@ -28,7 +28,7 @@ It is deliberately excluded from Git because the compact published source set is
 ## Agent workflow
 
 1. Read this file, the relevant section of `paper.md`, and the existing top-level `REPRODUCING.md`.
-2. Select one `pending` row from `targets.tsv`.
+2. Select one `pending` row from `targets.tsv`, or audit a completed row and its evidence when no pending rows remain.
 3. Reuse existing outputs and prior verification evidence before launching expensive workflows.
 4. Identify the smallest notebook, script, table, or verifier that can test the target.
 5. Compare the result using the acceptance rule written in that row.
