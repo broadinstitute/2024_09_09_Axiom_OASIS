@@ -1,0 +1,76 @@
+article_title = "Cell Painting for cytotoxicity and mode-of-action analysis in primary human hepatocytes"
+doi = "10.1016/j.cels.2026.101566"
+publication = "Cell Systems 17 (2026) 101566"
+license = "CC-BY-4.0"
+
+[[source]]
+id = "main"
+path = "main.pdf"
+role = "canonical camera-ready article"
+url = "https://www.sciencedirect.com/science/article/pii/S2405471226000487"
+sha256 = "b24665d58da4c7e12fc37165c15003e36a3e5fbd4ad431457dadfe656f7df80c"
+bytes = 4541568
+canonical = true
+
+[[source]]
+id = "supplemental-figures"
+path = "supplemental-figures.pdf"
+role = "published supplemental figures S1-S4"
+url = "https://ars.els-cdn.com/content/image/1-s2.0-S2405471226000487-mmc1.pdf"
+sha256 = "c2a7090d8fa668fab5e18fcd5703f3b4a7985ad61d137dcbba77c865fb3ea7a9"
+bytes = 4109803
+canonical = true
+
+[[source]]
+id = "table-s1"
+path = "table-s1.xlsx"
+role = "published supplemental table S1"
+url = "https://ars.els-cdn.com/content/image/1-s2.0-S2405471226000487-mmc2.xlsx"
+sha256 = "345dff689db7d3e0ed2c6d39403879b755c3526e33360d66f874c9dc7828560d"
+bytes = 97586
+canonical = true
+
+[[source]]
+id = "table-s2"
+path = "table-s2.xlsx"
+role = "published supplemental table S2"
+url = "https://ars.els-cdn.com/content/image/1-s2.0-S2405471226000487-mmc3.xlsx"
+sha256 = "01db4942cef5a3ff53b10efd5c60ed86d9a3afbf68aad44fc7f8362389a4efa4"
+bytes = 65528
+canonical = true
+
+[[source]]
+id = "table-s3"
+path = "table-s3.xlsx"
+role = "published supplemental table S3"
+url = "https://ars.els-cdn.com/content/image/1-s2.0-S2405471226000487-mmc4.xlsx"
+sha256 = "c6b9a5b00c40c62ea2c3763874cdc0880449316066e00bea856c2d0877a3ae38"
+bytes = 817711
+canonical = true
+
+[[source]]
+id = "table-s4"
+path = "table-s4.xlsx"
+role = "published supplemental table S4"
+url = "https://ars.els-cdn.com/content/image/1-s2.0-S2405471226000487-mmc5.xlsx"
+sha256 = "d65a212abcc2ca3fe00b8d73659c47dd69d66e1b32f731b73c4d3e3528bef338"
+bytes = 57444
+canonical = true
+
+[[source]]
+id = "table-s5"
+path = "table-s5.xlsx"
+role = "published supplemental table S5"
+url = "https://ars.els-cdn.com/content/image/1-s2.0-S2405471226000487-mmc6.xlsx"
+sha256 = "112432976c3f944d5ca953481bfbec808fb25c065c218bf1e258508ccfc0e7e5"
+bytes = 139769
+canonical = true
+
+[[source]]
+id = "manuscript-source"
+path = "manuscript-source.docx"
+role = "structural scaffold for searchable Markdown"
+url = "submission bundle supplied by the authors"
+sha256 = "23786cb09d47fd5b12c302f9cb1f884ad486f6fbe4e0ab21c00ffeac711aa27b"
+bytes = 54532
+canonical = false

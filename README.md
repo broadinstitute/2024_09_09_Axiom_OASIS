@@ -6,6 +6,9 @@
 > instructions below describe the original layout; several of the scripts they
 > reference do not run as published, and `REPRODUCING.md` says which.
 
+> **Working from the paper?**
+> See [paper/README.md](paper/README.md) for the searchable paper, published source files, target inventory, flexible acceptance rules, and evidence workflow for systematic reproduction.
+
 This repository is for analyzing the Axiom OASIS imaging data. Scripts for downloading the data from the Cell Painting Gallery are included in the 0_data_download folder. The main analysis is in the 1_snakemake folder, and exploratory notebooks for visualizing results and comparing across pipeline variations are in the 2_downstream_analysis folder.
 
 ## Skipping input data formatting
