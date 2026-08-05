@@ -16,6 +16,7 @@ from .archive import DEFAULT_MAX_CONSECUTIVE_FAILURES, print_json, run_archive, 
 from .contract import Contract, load_contract
 from .inventory import build_inventory, verify_inventory_artifacts
 from .io import atomic_write_json, ensure_group_directories, exclusive_workflow_lock
+from .plan import axiom_archive_plan
 
 DEFAULT_CONTRACT: Final = Path("images/source.toml")
 METADATA_DIRECTORY: Final = "_archive"
@@ -170,7 +171,7 @@ def _archive_command(parsed: argparse.Namespace, contract: Contract, work_dir: P
         _require_remote_preflight(contract, work_dir / "summary.json")
         max_in_flight = parsed.max_in_flight or parsed.workers * 2
         result = run_archive(
-            contract,
+            axiom_archive_plan(contract),
             inventory_path=work_dir / "inventory.parquet",
             state_path=work_dir / "state.sqlite3",
             workers=parsed.workers,
@@ -225,7 +226,7 @@ def _validate_command(parsed: argparse.Namespace, contract: Contract, work_dir: 
         _require_destination_storage(contract.destination.root)
         _require_remote_preflight(contract, work_dir / "summary.json")
         result = validate_archive(
-            contract,
+            axiom_archive_plan(contract),
             inventory_path=work_dir / "inventory.parquet",
             rejected_path=work_dir / "rejected.parquet",
             state_path=work_dir / "state.sqlite3",
