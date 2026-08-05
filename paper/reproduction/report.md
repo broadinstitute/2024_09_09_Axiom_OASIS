@@ -9,7 +9,7 @@ Mode: `tracked`.
 Targets covered: 53.
 Executed groups: sources_design, activity_pods, regression_enrichment, toxcast, classifier, external_image.
 Validated tracked inputs: 60.
-Ledger SHA-256: `795bcb88a56565ec032d5c2ca05054672994daa5978c39b997d23025b6156ce4`.
+Ledger SHA-256: `e0bc966efd96e283084c386e6a209eb5580e56b0493572882d1c28657bab02e1`.
 
 ## Execution outcome counts
 
@@ -691,7 +691,7 @@ Producer: 2_downstream_analysis/manuscript_notebooks/2_2_outlier_enrichment_anal
 Ledger evidence: evidence/mt-discrepancy-enrichment.md.
 Historical ledger status: `reproduced-with-deviation`.
 Execution outcome: `checked`; availability: `available`; evidence strength: `derived-artifact-reanalysis`.
-Declared deviation: The current rerun selects 262 wells and 71 significant sets, retaining six named CYPs and three named transporters but no significant HTR set; all 8858 target definitions reproduce exactly.
+Declared deviation: The committed 261-well artifact has 147 significant sets spanning CYPs, HTR neurotransmitter receptors, and xenobiotic transporters; the current 262-well rerun has 71 sets, retaining six CYPs and three transporters but no significant HTR set, so the rerun alone misses one accepted class.
 
 | Target-specific check | Observed | Expected | Passed |
 | --- | --- | --- | --- |
@@ -704,7 +704,7 @@ Validated inputs:
 - `paper/evidence/mt-discrepancy-enrichment.md`
 
 Limitations and deviations:
-- The current rerun selects 262 wells and 71 significant sets, retaining six named CYPs and three named transporters but no significant HTR set; all 8858 target definitions reproduce exactly
+- The committed 261-well artifact has 147 significant sets spanning CYPs, HTR neurotransmitter receptors, and xenobiotic transporters; the current 262-well rerun has 71 sets, retaining six CYPs and three transporters but no significant HTR set, so the rerun alone misses one accepted class
 - Tracked derived artifacts were reanalyzed; classifiers, curves, predictions, and upstream workflows were not regenerated.
 
 ### ENRICH-004 - Lower morphology-predicted than observed MT cases

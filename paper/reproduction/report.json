@@ -2967,7 +2967,7 @@
       ]
     }
   },
-  "ledger_sha256": "795bcb88a56565ec032d5c2ca05054672994daa5978c39b997d23025b6156ce4",
+  "ledger_sha256": "e0bc966efd96e283084c386e6a209eb5580e56b0493572882d1c28657bab02e1",
   "mode": "tracked",
   "schema_version": 3,
   "summary": {
@@ -4219,7 +4219,7 @@
         }
       ],
       "description": "Higher morphology-predicted than observed MT cases",
-      "deviation": "The current rerun selects 262 wells and 71 significant sets, retaining six named CYPs and three named transporters but no significant HTR set; all 8858 target definitions reproduce exactly",
+      "deviation": "The committed 261-well artifact has 147 significant sets spanning CYPs, HTR neurotransmitter receptors, and xenobiotic transporters; the current 262-well rerun has 71 sets, retaining six CYPs and three transporters but no significant HTR set, so the rerun alone misses one accepted class",
       "evidence": "evidence/mt-discrepancy-enrichment.md",
       "evidence_strength": "derived-artifact-reanalysis",
       "execution_outcome": "checked",
@@ -4233,7 +4233,7 @@
       "kind": "claim",
       "ledger_status": "reproduced-with-deviation",
       "limitations": [
-        "The current rerun selects 262 wells and 71 significant sets, retaining six named CYPs and three named transporters but no significant HTR set; all 8858 target definitions reproduce exactly",
+        "The committed 261-well artifact has 147 significant sets spanning CYPs, HTR neurotransmitter receptors, and xenobiotic transporters; the current 262-well rerun has 71 sets, retaining six CYPs and three transporters but no significant HTR set, so the rerun alone misses one accepted class",
         "Tracked derived artifacts were reanalyzed; classifiers, curves, predictions, and upstream workflows were not regenerated."
       ],
       "producer": "2_downstream_analysis/manuscript_notebooks/2_2_outlier_enrichment_analysis.ipynb",

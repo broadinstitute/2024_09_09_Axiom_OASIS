@@ -81,6 +81,13 @@ target/
 # marimo
 __marimo__/
 
+# Commit only the rendered living-paper session used by the Molab preview.
+!/paper/__marimo__/
+/paper/__marimo__/*
+!/paper/__marimo__/session/
+/paper/__marimo__/session/*
+!/paper/__marimo__/session/living_results.py.json
+
 # IPython
 profile_default/
 ipython_config.py

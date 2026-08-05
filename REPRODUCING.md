@@ -53,6 +53,9 @@ Each run has an ASCII `manifest.json`, one log per attempt, explicit generated-v
 uv run paper/reproduce_all.py --resume --run-dir paper/runs/RUN_NAME
 ```
 
+Resume is deliberately bound to the exact commit and unchanged `paper/reproduce_all.py` recorded by the run manifest.
+If the checkout has advanced, use a separate checkout at the recorded `repository.head` and pass the existing run directory explicitly.
+
 The semantic verifier is the regenerated-candidate acceptance gate.
 The tracked paper runner retains exact committed and published-layer contracts, so its report is kept as source-integrity and target-accounting evidence rather than being applied to fresh PODs that are allowed to drift.
 

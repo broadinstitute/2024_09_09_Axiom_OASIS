@@ -4,6 +4,7 @@ __generated_with = "0.23.16"
 app = marimo.App(width="medium")
 
 with app.setup:
+    import hashlib
     import json
     from collections import Counter
     from pathlib import Path
@@ -12,7 +13,8 @@ with app.setup:
     import marimo as mo
     import tomllib
 
-    REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+    NOTEBOOK_PATH = Path(__file__).resolve()
+    REPOSITORY_ROOT = NOTEBOOK_PATH.parents[1]
     REPORT_PATH = REPOSITORY_ROOT / "paper/reproduction/report.json"
     SOURCE_MANIFEST_PATH = REPOSITORY_ROOT / "paper/sources/manifest.toml"
     FIGURE_PATHS = {
@@ -20,6 +22,12 @@ with app.setup:
         "toxcast": REPOSITORY_ROOT / "paper/reproduction/toxcast-summary.svg",
         "coverage": REPOSITORY_ROOT / "paper/reproduction/evidence-coverage.svg",
     }
+    RENDERED_STATE_PATHS = (
+        NOTEBOOK_PATH,
+        REPORT_PATH,
+        SOURCE_MANIFEST_PATH,
+        *FIGURE_PATHS.values(),
+    )
     REQUIRED_ANALYSES = {
         "activity_pods",
         "classifier",
@@ -172,6 +180,18 @@ def load_contract(
 
 
 @app.function
+def rendered_state_sha256(paths: tuple[Path, ...] = RENDERED_STATE_PATHS) -> str:
+    digest = hashlib.sha256()
+    for path in paths:
+        relative_path = path.relative_to(REPOSITORY_ROOT).as_posix()
+        digest.update(relative_path.encode("ascii"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+@app.function
 def conclusion_gate_failures(report: dict[str, Any]) -> list[str]:
     failures = []
     for analysis_name, required_gates in REQUIRED_CONCLUSION_GATES.items():
@@ -235,11 +255,12 @@ def format_metric(value: float, digits: int = 3) -> float:
 def _():
     report, source_manifest = load_contract()
     gate_failures = conclusion_gate_failures(report)
-    return gate_failures, report, source_manifest
+    rendered_digest = rendered_state_sha256()
+    return gate_failures, rendered_digest, report, source_manifest
 
 
 @app.cell
-def _(report, source_manifest):
+def _(rendered_digest, report, source_manifest):
     paper_title = source_manifest["article_title"]
     publication = source_manifest["publication"]
     doi = source_manifest["doi"]
@@ -251,6 +272,7 @@ def _(report, source_manifest):
         This is a short, repository-backed Results paper for [{publication}](https://doi.org/{doi}).
         Every number below is read from the committed report contract at `paper/reproduction/report.json`.
         The report was generated from ledger `{ledger_digest}`.
+        The rendered notebook state has digest `{rendered_digest}`.
         """
     )
     return

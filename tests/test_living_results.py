@@ -3,11 +3,13 @@ from __future__ import annotations
 import ast
 import copy
 import importlib.util
+import json
 import unittest
 from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 NOTEBOOK_PATH = REPOSITORY_ROOT / "paper/living_results.py"
+SESSION_PATH = REPOSITORY_ROOT / "paper/__marimo__/session/living_results.py.json"
 MARIMO_AVAILABLE = importlib.util.find_spec("marimo") is not None
 
 if MARIMO_AVAILABLE:
@@ -66,6 +68,13 @@ class LivingResultsContractTest(unittest.TestCase):
     def test_current_interpretation_gates_pass(self) -> None:
         assert living_results is not None
         self.assertEqual(living_results.conclusion_gate_failures(self.report), [])
+
+    def test_committed_molab_session_matches_rendered_state(self) -> None:
+        assert living_results is not None
+        session_text = SESSION_PATH.read_text(encoding="utf-8")
+        session = json.loads(session_text)
+        self.assertEqual(session["version"], "1")
+        self.assertIn(living_results.rendered_state_sha256(), session_text)
 
     def test_results_use_only_checked_targets(self) -> None:
         assert living_results is not None

@@ -55,6 +55,8 @@ The installer-owned copies under `.agents/skills/` and `.claude/skills/` are loc
 
 `living_results.py` is the short, reactive Results paper.
 It reads the tracked audit in `reproduction/report.json` and publication metadata in `sources/manifest.toml`; it does not discover candidate outputs under `runs/` or launch the GPU workflow.
+Molab renders the committed snapshot at `__marimo__/session/living_results.py.json`.
+The contract test binds that snapshot to the current notebook, report, source manifest, and three rendered SVG inputs so stale preview output fails validation.
 
 Edit the source notebook with a loopback-only marimo session:
 
@@ -76,6 +78,7 @@ After changing the target ledger or tracked evidence, refresh the machine-readab
 ```bash
 uv run paper/reproduce.py
 pixi run -e notebooks marimo check paper/living_results.py
+pixi run -e notebooks marimo export session paper/living_results.py --force-overwrite
 ```
 
 `uv run paper/reproduce.py` is the canonical tracked-report refresh because its PEP 723 environment and lock belong to the report producer.
@@ -131,6 +134,9 @@ Resume an interrupted run by passing its directory explicitly:
 ```bash
 uv run paper/reproduce_all.py --resume --run-dir paper/runs/RUN_NAME
 ```
+
+Resume is deliberately bound to the exact commit and unchanged `paper/reproduce_all.py` recorded by the run manifest.
+If the checkout has advanced, use a separate checkout at the recorded `repository.head` and pass the existing run directory explicitly.
 
 The generated-candidate verdict is `artifacts/semantic-verification.json`.
 `artifacts/tracked-audit/` is a separate source-integrity and target-accounting report; it is not used to reject acceptable regenerated POD drift.
