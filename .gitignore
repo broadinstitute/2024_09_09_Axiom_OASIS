@@ -185,7 +185,9 @@ result
 result-*
 
 # Project-local third-party skills (pinned in skills-lock.json)
+.agents/skills/add-molab-badge
 .agents/skills/marimo-notebook
 .agents/skills/marimo-pair
+.claude/skills/add-molab-badge
 .claude/skills/marimo-notebook
 .claude/skills/marimo-pair

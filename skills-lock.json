@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "add-molab-badge": {
+      "source": "marimo-team/skills",
+      "sourceType": "github",
+      "skillPath": "skills/add-molab-badge/SKILL.md",
+      "computedHash": "a77dbd15988d3a2c167139e7c9871e48ec866c3b9556631a2bd74d0fc5b6747c"
+    },
     "marimo-notebook": {
       "source": "marimo-team/skills",
       "sourceType": "github",

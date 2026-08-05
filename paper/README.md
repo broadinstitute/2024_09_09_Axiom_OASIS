@@ -41,6 +41,7 @@ Marimo 0.23.16 is pinned in the `notebooks` environment by `pixi.toml` and `pixi
 The optional project-local marimo skills used by Claude Code and Codex can be restored exactly from a fresh clone:
 
 ```bash
+npx skills@1.5.20 add marimo-team/skills -s add-molab-badge -a claude-code -a codex -y
 npx skills@1.5.20 add marimo-team/skills -s marimo-notebook -a claude-code -a codex -y
 npx skills@1.5.20 add marimo-team/marimo-pair -s marimo-pair -a claude-code -a codex -y
 ```
@@ -49,6 +50,8 @@ npx skills@1.5.20 add marimo-team/marimo-pair -s marimo-pair -a claude-code -a c
 The installer-owned copies under `.agents/skills/` and `.claude/skills/` are local generated state and are ignored by Git.
 
 ## Living results notebook
+
+[![Open in molab](https://marimo.io/molab-shield.svg)](https://molab.marimo.io/github/broadinstitute/2024_09_09_Axiom_OASIS/blob/main/paper/living_results.py)
 
 `living_results.py` is the short, reactive Results paper.
 It reads the tracked audit in `reproduction/report.json` and publication metadata in `sources/manifest.toml`; it does not discover candidate outputs under `runs/` or launch the GPU workflow.
