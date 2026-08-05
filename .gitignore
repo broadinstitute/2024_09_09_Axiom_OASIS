@@ -78,6 +78,9 @@ target/
 # Jupyter Notebook
 .ipynb_checkpoints
 
+# marimo
+__marimo__/
+
 # IPython
 profile_default/
 ipython_config.py
@@ -180,3 +183,9 @@ XX_preprocessing/output/refchemdb_inchikey.csv
 .direnv/
 result
 result-*
+
+# Project-local third-party skills (pinned in skills-lock.json)
+.agents/skills/marimo-notebook
+.agents/skills/marimo-pair
+.claude/skills/marimo-notebook
+.claude/skills/marimo-pair

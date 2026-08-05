@@ -25,6 +25,61 @@ sha256sum -c SHA256SUMS
 The original 135 MB submission bundle contains draft manuscripts, administrative documents, and redundant figure sources.
 It is deliberately excluded from Git because the compact published source set is sufficient for this workflow.
 
+## Fresh-clone setup
+
+Clone the repository and install the locked notebook environment:
+
+```bash
+git clone https://github.com/broadinstitute/2024_09_09_Axiom_OASIS.git
+cd 2024_09_09_Axiom_OASIS
+nix develop path:. --command pixi install -e notebooks --frozen
+```
+
+Enter `nix develop` before running the Pixi commands below.
+Marimo 0.23.16 is pinned in the `notebooks` environment by `pixi.toml` and `pixi.lock`.
+
+The optional project-local marimo skills used by Claude Code and Codex can be restored exactly from a fresh clone:
+
+```bash
+npx skills@1.5.20 add marimo-team/skills -s marimo-notebook -a claude-code -a codex -y
+npx skills@1.5.20 add marimo-team/marimo-pair -s marimo-pair -a claude-code -a codex -y
+```
+
+`skills-lock.json` records their sources and content hashes.
+The installer-owned copies under `.agents/skills/` and `.claude/skills/` are local generated state and are ignored by Git.
+
+## Living results notebook
+
+`living_results.py` is the short, reactive Results paper.
+It reads the tracked audit in `reproduction/report.json` and publication metadata in `sources/manifest.toml`; it does not discover candidate outputs under `runs/` or launch the GPU workflow.
+
+Edit the source notebook with a loopback-only marimo session:
+
+```bash
+pixi run -e notebooks marimo edit paper/living_results.py --no-token
+```
+
+Run the read-only app, check the notebook, or export a code-free standalone HTML file:
+
+```bash
+pixi run -e notebooks marimo run paper/living_results.py --host 127.0.0.1
+pixi run -e notebooks marimo check paper/living_results.py
+pixi run -e notebooks marimo export html --no-include-code --force paper/living_results.py -o /tmp/oasis-living-results.html
+```
+
+The `/tmp` export is deliberately disposable so it cannot make the committed reproduction report appear stale.
+After changing the target ledger or tracked evidence, refresh the machine-readable audit first, then reopen or rerun the living notebook:
+
+```bash
+uv run paper/reproduce.py
+pixi run -e notebooks marimo check paper/living_results.py
+```
+
+`uv run paper/reproduce.py` is the canonical tracked-report refresh because its PEP 723 environment and lock belong to the report producer.
+Existing values, statuses, limitations, and target tables update automatically when that report changes.
+To promote a newly checked result into the short narrative, add its target ID to `RESULT_SECTION_TARGETS` in `living_results.py`; the contract tests reject blocked, documentary-only, and out-of-scope mappings.
+Use `uv run paper/reproduce_all.py` only for the separate, multi-hour upstream GPU reproduction described below.
+
 ## Run the executable paper
 
 Run the tracked-data reproduction from the repository root:
