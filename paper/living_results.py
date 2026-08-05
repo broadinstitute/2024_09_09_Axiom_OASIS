@@ -233,6 +233,34 @@ def target_rows(
 
 
 @app.function
+def target_detail_markdown(target: dict[str, Any]) -> str:
+    limitation_lines = [f"- {limitation}" for limitation in target["limitations"]] or ["- None recorded."]
+    return "\n".join(
+        [
+            f"### {target['id']}: {target['description']}",
+            "",
+            f"**Published expectation:** {target['expected']}",
+            "",
+            f"**Acceptance criterion:** {target['acceptance']}",
+            "",
+            (
+                f"**Execution:** `{target['execution_outcome']}`; "
+                f"**ledger:** `{target['ledger_status']}`; "
+                f"**evidence strength:** `{target['evidence_strength']}`."
+            ),
+            "",
+            f"**Producer:** `{target['producer']}`",
+            "",
+            f"**Evidence note:** `paper/{target['evidence']}`",
+            "",
+            "**Limitations**",
+            "",
+            *limitation_lines,
+        ]
+    )
+
+
+@app.function
 def mt_enrichment_rows(report: dict[str, Any]) -> list[dict[str, Any]]:
     allowed_files = {"mtt_higher_targets.csv", "mtt_lower_targets.csv"}
     return [
@@ -358,7 +386,7 @@ def _(gate_failures, report):
     activity_gate_names = REQUIRED_CONCLUSION_GATES["activity_pods"]
     activity_passes = not any(f"activity_pods.{gate_name}" in gate_failures for gate_name in activity_gate_names)
     activity_conclusion = (
-        "The tracked results support the paper's practical conclusion: Cell Painting detects more bioactivity and reaches lower PODs than the paired cytotoxicity assays."
+        "The tracked results support the paper's practical conclusion: Cell Painting detects morphological bioactivity more often and at lower PODs than the paired cytotoxicity assays."
         if activity_passes
         else "The current tracked results do not pass every gate required for the paper's bioactivity and POD conclusion."
     )
@@ -376,10 +404,16 @@ def _(gate_failures, report):
         [
             mo.md(
                 f"""
-                ## 1. Cell Painting detects sensitive bioactivity
+                ## 1. Cell Painting detects bioactivity below overt cytotoxicity
 
                 {activity_conclusion}
                 The four-assay comparison contains {activity["figure_2d"]["complete_case_count"]} complete cases in the published supplemental substrate.
+
+                Here, bioactivity means a measurable biological response, not toxicity or harm.
+                Many tested compounds are drugs intended to interact with human biology, so some signals may reflect intended effects.
+                Profile-level statistical differences do not identify a specific phenotype or determine whether it is adverse.
+                ToxCast prediction provides partial context, but its labels are heterogeneous and incomplete, and predictive association does not establish causality.
+                Directly quantifying interpretable phenotypes, such as DNA mutations or excessive lipid accumulation, would provide a stronger basis for deciding which signals are concerning.
                 """
             ),
             mo.hstack(
@@ -686,30 +720,9 @@ def _(target_index, target_selector):
         }
         for check in selected_target["checks"]
     ]
-    selected_limitations = (
-        "\n".join(f"- {limitation}" for limitation in selected_target["limitations"]) or "- None recorded."
-    )
     mo.vstack(
         [
-            mo.md(
-                f"""
-                ### {selected_target["id"]}: {selected_target["description"]}
-
-                **Published expectation:** {selected_target["expected"]}
-
-                **Acceptance criterion:** {selected_target["acceptance"]}
-
-                **Execution:** `{selected_target["execution_outcome"]}`; **ledger:** `{selected_target["ledger_status"]}`; **evidence strength:** `{selected_target["evidence_strength"]}`.
-
-                **Producer:** `{selected_target["producer"]}`
-
-                **Evidence note:** `paper/{selected_target["evidence"]}`
-
-                **Limitations**
-
-                {selected_limitations}
-                """
-            ),
+            mo.md(target_detail_markdown(selected_target)),
             mo.ui.table(
                 selected_checks,
                 selection=None,

@@ -13,8 +13,11 @@ SESSION_PATH = REPOSITORY_ROOT / "paper/__marimo__/session/living_results.py.jso
 MARIMO_AVAILABLE = importlib.util.find_spec("marimo") is not None
 
 if MARIMO_AVAILABLE:
+    import marimo as mo
+
     from paper import living_results
 else:
+    mo = None
     living_results = None
 
 
@@ -105,6 +108,19 @@ class LivingResultsContractTest(unittest.TestCase):
             {"mtt higher", "mtt lower"},
         )
         self.assertEqual(set(living_results.FIGURE_PATHS), {"activity", "coverage", "toxcast"})
+
+    def test_every_target_detail_is_top_level_markdown(self) -> None:
+        assert living_results is not None
+        assert mo is not None
+        for target in self.report["targets"]:
+            with self.subTest(target=target["id"]):
+                markdown = living_results.target_detail_markdown(target)
+                rendered = mo.md(markdown)._repr_html_()
+                self.assertTrue(markdown.startswith(f"### {target['id']}:"))
+                self.assertFalse(any(line.startswith("    ") for line in markdown.splitlines()))
+                self.assertEqual(markdown.count("\n- "), max(1, len(target["limitations"])))
+                self.assertIn("<h3", rendered)
+                self.assertNotIn("<pre", rendered)
 
     def test_summary_drift_fails_closed(self) -> None:
         assert living_results is not None
