@@ -15,6 +15,9 @@ Each complete source TIFF becomes one standard `.jxl` object at:
   jpegxl-d1-e5/<batch>/images/<plate>/<stem>.jxl
 ```
 
+The completed Spirit v1 run is frozen in `images/run-receipt-2026-08-05.toml`.
+That machine-readable receipt binds the exact source and manifest identities, codec runtime, two conversion phases, a deterministically specified ledger evidence digest and totals, and the external validation report without copying generated image data into Git.
+
 No channel stacking, normalization, intensity transformation, cropping, resizing, or biological recalibration is performed.
 The HQ setting is a declared storage tier, not evidence that downstream biological measurements are unchanged.
 
@@ -46,7 +49,11 @@ After reviewing the preflight report and confirming storage registration, start 
 
 ```bash
 direnv exec . pixi run -e images python -m oasis_images archive \
-  --contract images/source.toml
+  --contract images/source.toml \
+  --workers 64 \
+  --max-in-flight 128 \
+  --max-attempts 5 \
+  --max-consecutive-failures 32
 ```
 
 For an engineering smoke run, add `--limit 6`, then audit only the current verified subset with `validate --verified-only`.
@@ -75,17 +82,22 @@ systemctl --user enable --now oasis-axiom-jpegxl.service
 
 The service needs user lingering enabled to survive SSH logout.
 Monitor it with `systemctl --user status oasis-axiom-jpegxl.service` and `journalctl --user -fu oasis-axiom-jpegxl.service`.
-It uses 32 single-threaded codec workers, keeps at most 64 conversions in flight, lowers CPU and I/O scheduling priority, and stops for inspection after an ordinary terminal failure.
+It uses the completed Spirit run's setting of 64 single-threaded codec workers and at most 128 conversions in flight, lowers CPU and I/O scheduling priority, and stops for inspection after an ordinary terminal failure.
 
-Inspect durable progress and run the final completeness gate with:
+The conversion service stops after ledger completion and does not run the whole-archive validator.
+After conversion has stopped and released the destination lock, inspect durable progress and run the final completeness gate separately:
 
 ```bash
-direnv exec . pixi run -e images python -m oasis_images status
-direnv exec . pixi run -e images python -m oasis_images validate \
+direnv exec . pixi run -e images python -m oasis_images status \
   --contract images/source.toml
+direnv exec . pixi run -e images python -m oasis_images validate \
+  --contract images/source.toml \
+  --workers 64 \
+  --max-attempts 5
 ```
 
-The archive is complete only when all 2,017,182 complete unique TIFF URIs have verified JPEG XL objects and all 2,160 incomplete index rows remain explicitly accounted for.
+Conversion is complete only when all 2,017,182 complete unique TIFF URIs have verified JPEG XL objects and all 2,160 incomplete index rows remain explicitly accounted for.
+The archive is fully validated only when the separate full `validate` command reports `complete: true` after hashing and decoding all 2,017,182 outputs.
 An existing output is reusable only after successful decode plus source/destination identity checks.
 Corrupt or partial outputs are replaced atomically and must never be accepted by an existence-only resume check.
 Any unresolved transfer, encode, decode, contract, count, or completeness error produces a nonzero exit status and prevents a complete status.
