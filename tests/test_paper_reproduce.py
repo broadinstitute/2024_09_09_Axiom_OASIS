@@ -36,9 +36,8 @@ ZIP_LOCAL_HEADER_SIZE = 30
 ZIP_UINT16_SIZE = 2
 EXPECTED_LEDGER_STATUS_COUNTS = {
     "blocked": 3,
-    "out-of-scope": 1,
     "reproduced": 7,
-    "reproduced-with-deviation": 42,
+    "reproduced-with-deviation": 43,
 }
 EXPECTED_EXECUTION_OUTCOME_COUNTS = {
     "blocked": 3,
@@ -47,8 +46,8 @@ EXPECTED_EXECUTION_OUTCOME_COUNTS = {
     "out-of-scope": 1,
 }
 EXPECTED_ACCEPTANCE_CLASS_COUNTS = {
-    "close": 18,
-    "exact": 14,
+    "close": 19,
+    "exact": 13,
     "qualitative": 19,
     "trace-only": 2,
 }
@@ -327,7 +326,13 @@ class PaperReproductionRunnerTest(unittest.TestCase):
         self.assertEqual(set(selected["groups"]), {"external_image"})
         self.assertEqual(
             set(selected["validated_inputs"]),
-            {"paper/targets.tsv", "paper/paper.md", "paper/figures/figure-s1.jpg"},
+            {
+                "paper/targets.tsv",
+                "paper/paper.md",
+                "paper/figures/figure-s1.jpg",
+                "paper/evidence/figure-s1.md",
+                "paper/render_sfig1.py",
+            },
         )
         with tempfile.TemporaryDirectory() as temporary_directory:
             output = Path(temporary_directory) / "selected"

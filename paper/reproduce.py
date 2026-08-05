@@ -194,6 +194,7 @@ TRACE_INPUTS = (
     "paper/evidence/bioactivity-and-figure-2b-d.md",
     "paper/evidence/classifier-results.md",
     "paper/evidence/experimental-design-and-figure-1.md",
+    "paper/evidence/figure-s1.md",
     "paper/evidence/method-deviations.md",
     "paper/evidence/mt-discrepancy-enrichment.md",
     "paper/evidence/prediction-error-enrichment.md",
@@ -203,6 +204,7 @@ TRACE_INPUTS = (
     "paper/evidence/toxcast-curation-and-figure-s3.md",
     "paper/figures/figure-1.jpg",
     "paper/figures/figure-s1.jpg",
+    "paper/render_sfig1.py",
     "0_prepare_data/4A_download_compiled_inputs.py",
     "1_snakemake/Snakefile",
     "1_snakemake/concresponse/fit_curves.R",
@@ -1978,12 +1980,28 @@ def _analyze_external_image(root: Path) -> dict[str, object]:
     paper_text = _input_path(root, "paper/paper.md").read_text(encoding="utf-8")
     identity_trace = all(token in paper_text for token in ("41002889", "L12", "site = 6", "191,754"))
     _confirm(identity_trace, "Figure S1 identity or inventory trace is incomplete")
+    evidence_text = _input_path(root, "paper/evidence/figure-s1.md").read_text(encoding="utf-8")
+    producer_text = _input_path(root, "paper/render_sfig1.py").read_text(encoding="utf-8")
+    external_reproduction_documented = all(
+        token in evidence_text
+        for token in (
+            "318,828",
+            "72,519",
+            "undocumented nine-site selection rule",
+            "reproduced-with-deviation",
+        )
+    ) and all(token in producer_text for token in ("TARGET_PLATE", "TARGET_WELL", "TARGET_SITE", "CHANNELS"))
+    _confirm(external_reproduction_documented, "Figure S1 external reproduction evidence is incomplete")
     return {
         "navigation_image_sha256": hashlib.sha256(image).hexdigest(),
         "navigation_image_bytes": len(image),
         "identity_trace": identity_trace,
+        "external_reproduction_documented": external_reproduction_documented,
         "source_image_available": False,
-        "limitation": "The raw source TIFF and image index are external and intentionally absent.",
+        "limitation": (
+            "The raw source TIFF and image index are absent from the tracked audit, but the external producer and "
+            "measured inventory-count deviation are documented."
+        ),
     }
 
 
@@ -3118,9 +3136,19 @@ TARGET_RECIPES: dict[str, TargetRecipe] = {
         "external_image",
         "unavailable",
         "out-of-scope",
-        ("paper/figures/figure-s1.jpg", "paper/paper.md"),
+        (
+            "paper/figures/figure-s1.jpg",
+            "paper/paper.md",
+            "paper/evidence/figure-s1.md",
+            "paper/render_sfig1.py",
+        ),
         _target_builder(
             _rule("tracked navigation image identity trace", ("external_image", "identity_trace"), True),
+            _rule(
+                "external source-image reproduction documented",
+                ("external_image", "external_reproduction_documented"),
+                True,
+            ),
             _rule("external source image available", ("external_image", "source_image_available"), False),
         ),
     ),

@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "skills": {
+    "add-molab-badge": {
+      "source": "marimo-team/skills",
+      "sourceType": "github",
+      "skillPath": "skills/add-molab-badge/SKILL.md",
+      "computedHash": "a77dbd15988d3a2c167139e7c9871e48ec866c3b9556631a2bd74d0fc5b6747c"
+    },
+    "marimo-notebook": {
+      "source": "marimo-team/skills",
+      "sourceType": "github",
+      "skillPath": "skills/marimo-notebook/SKILL.md",
+      "computedHash": "d843af038a49245369d9a91b8dda531a0d58882bc06623604b673cb144588edd"
+    },
+    "marimo-pair": {
+      "source": "marimo-team/marimo-pair",
+      "sourceType": "github",
+      "skillPath": "skills/marimo-pair/SKILL.md",
+      "computedHash": "0686fcc0854e7b3723087c0fc67831dc7122ffe696163c8e5e5a74e0222e1db2"
+    }
+  }
+}

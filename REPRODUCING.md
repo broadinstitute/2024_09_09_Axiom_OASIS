@@ -12,20 +12,60 @@ Both divergences are characterised below.
 
 ## Scope
 
-Target: regenerate the committed artifacts in `2_downstream_analysis/compiled_results/` and `compiled_results/SI_tables/` and compare them numerically to what is in git.
+Target: run every currently executable repository analysis from verified public inputs, regenerate the candidate artifacts in `2_downstream_analysis/compiled_results/` and `compiled_results/SI_tables/`, and compare the accepted core results numerically to what is in git.
 
 Fidelity: numerical equivalence within a documented tolerance, with every deviation explained.
 Bit-identical output is not achievable here -- the original environment was macOS arm64 (the deleted `environment.yml` recorded `prefix: /Users/jewald/miniforge3/envs/axiom`), this runs on Linux x86_64, and the R dependency set was never pinned by anything.
 
-Covers four configs: `cellprofiler.json`, `cpcnn.json`, `dino.json`, and `cellprofiler_filt.json` (run to settle which one the manuscript used -- see below; the answer is that it does not matter).
+The supported command is wired to cover the three core configurations, the full filtered CellProfiler configuration, and the nine targeted `_log10`, `_int`, and `_ap` sensitivity configurations consumed by the notebooks.
+A completed run executes 17 notebooks, renders supplemental Figure S1 from its public TIFFs, applies the semantic candidate verifier, runs the tracked 53-target audit, and exports the executed notebooks to greppable Markdown.
 
-Not covered: the nine further runs for the `_log10`, `_int` and `_ap` variants that `SI_compare_processing.ipynb`, `1_3` and `05_compare_pods_transforms` need.
-Note before spending that compute that the `_int` branch could not have run as published, so whatever is in the committed `_int` results came from different code.
+The three core configurations and their generated tables retain the historical numerical acceptance gates described below.
+The filtered and transformation configurations are current-code sensitivity layers: the `_int` branch required a repair, current AP reruns use a newly declared deterministic seed, and the historical AP dependency and RNG state were not published.
+They are current execution evidence rather than historical equivalence evidence.
+
+Not covered: pixel-identical publisher-layout composites and three target-level historical claims whose required substrates are unavailable.
+Those boundaries remain explicit rather than being filled with whichever current substrate most closely resembles the paper.
+
+## One-command supported reproduction
+
+The supported workflow now has a safe, resumable orchestrator:
+
+```bash
+uv run paper/reproduce_all.py
+```
+
+The runner creates an ignored directory under `paper/runs/` and directs every scientific producer into an archived `HEAD` workspace.
+Its manifest, logs, verified input cache, and review artifacts remain beside that workspace under the ignored `paper/runs/` namespace.
+It preserves the committed compiled results as a read-only reference, creates a fresh candidate directory containing only explicitly seeded non-generated files, verifies or downloads the five Zenodo inputs by full MD5 and byte count, installs both locked Pixi environments, and is wired to run all 13 supported Snakemake configurations and 17 notebooks before applying `verification.compiled_results` to the regenerated core candidate.
+It also downloads and renders the exact five-channel field for supplemental Figure S1, runs the tracked 53-target accounting audit against a separate pristine snapshot, and exports executed notebooks and their plot assets to greppable Markdown.
+The 14-notebook core, repaired MTT outputs, semantic verifier, and Figure S1 renderer have been exercised independently; the first complete 13-configuration, 17-notebook GPU invocation remains pending.
+
+Use the dry run to inspect every stage and command without writing anything:
+
+```bash
+uv run paper/reproduce_all.py --dry-run
+```
+
+Each run has an ASCII `manifest.json`, one log per attempt, explicit generated-versus-seeded provenance, postconditions for required outputs, and enough state to resume safely:
+
+```bash
+uv run paper/reproduce_all.py --resume --run-dir paper/runs/RUN_NAME
+```
+
+The semantic verifier is the regenerated-candidate acceptance gate.
+The tracked paper runner retains exact committed and published-layer contracts, so its report is kept as source-integrity and target-accounting evidence rather than being applied to fresh PODs that are allowed to drift.
+
+The orchestrator is wired for the three core configurations, the full filtered CellProfiler configuration, the nine targeted transformation configurations, and every currently executable analysis notebook.
+The transformation runs produce the exact artifacts consumed by `1_3_compare_pods`, `SI_compare_processing`, and `05_compare_pods_transforms`; they are inventoried separately without a historical acceptance gate.
+It does not assemble publisher-layout composite figures.
+The historical Figure 2C significance substrate and manuscript-era enrichment substrate remain unavailable, so those target-level blockers remain declared even when the current producers run successfully.
 
 ## Running it from scratch
 
-Requires Nix with flakes, and at least one CUDA GPU (see caveats).
-Roughly 3.5 hours of wall clock for the three configs on a 4-GPU node; expect longer on fewer GPUs.
+Requires Nix with flakes, at least one CUDA GPU (see caveats), and at least 20 GiB of free space for the isolated run.
+The three core configurations previously took roughly 3.5 hours on a 4-GPU node.
+The full 13-configuration command takes longer, so plan for a multi-hour run and use the manifest-backed resume path if it is interrupted.
 
 **1.
 Environments.** R comes from Nix; Python and snakemake come from pixi.
@@ -112,7 +152,7 @@ That is expected, and it is not evidence of a behaviour change.
 set -e
 cd 2_downstream_analysis/manuscript_notebooks
 for nb in 3_2_0_assay_metrics 4_1_results_tables_SI 2_1_predict_continuous_assays \
-          3_2_1_compare_endpoint_types 1_2_number_active_readouts \
+          2_2_outlier_enrichment_analysis 3_2_1_compare_endpoint_types 1_2_number_active_readouts \
           1_2_1_cmpds_increase_mt 3_1_toxcast_endpoints 3_2_2_compare_concs_reps; do
   pixi run --manifest-path ../../pixi.toml -e pipeline \
     jupyter nbconvert --to notebook --execute --inplace \
@@ -122,6 +162,9 @@ pixi run --manifest-path ../../pixi.toml -e notebooks \
   jupyter nbconvert --to notebook --execute --inplace \
   --ExecutePreprocessor.kernel_name=python3 3_2_3_compare_endpoints_detail.ipynb
 cd ../other_notebooks
+pixi run --manifest-path ../../pixi.toml -e pipeline \
+  jupyter nbconvert --to notebook --execute --inplace \
+  --ExecutePreprocessor.kernel_name=python3 01_checkwelleffects.ipynb
 for nb in 02_analyze_AR 03_analyze_ER 04_analyze_GR; do
   pixi run --manifest-path ../../pixi.toml -e notebooks \
     jupyter nbconvert --to notebook --execute --inplace \
@@ -129,7 +172,11 @@ for nb in 02_analyze_AR 03_analyze_ER 04_analyze_GR; do
 done
 ```
 
-Not runnable, by design or defect: `2_2` and `01_checkwelleffects` (see below); `1_3`, `SI_compare_processing` and `05_compare_pods_transforms` need the extended config matrix; `Plot_images` needs S3 TIFF downloads into PNG subdirectories it does not create.
+The manual loop above records the independently exercised 14-notebook core baseline.
+The one-command runner additionally builds the extended inputs and executes `1_3_compare_pods`, `SI_compare_processing`, and `05_compare_pods_transforms` in that order.
+`Plot_images` is retained as historical exploratory code; `paper/render_sfig1.py` now resolves and renders the published Figure S1 field directly.
+The tracked notebooks retain historical embedded outputs and error records.
+The runner executes copies inside the isolated workspace, and only a completed run's exported artifacts should be treated as current output from the edited sources.
 
 **5.
 Comparing.** The notebooks overwrite `2_downstream_analysis/compiled_results/`.
@@ -156,7 +203,7 @@ The JSON report is optional, deterministic for a given invocation, and must be o
 The terminal summary reports every comparison even when a gate fails.
 Exit status 0 means all gates passed, 1 means a reproducibility gate failed, and 2 means the command or an input artifact was invalid.
 An exit-0 PASS covers only the configured gates listed below.
-Differences in non-core metric payloads, hit calls, and enrichment hit-list size, overlap, p-value, and FDR values remain diagnostic and are printed even when the gates pass.
+Differences in non-core metric payloads, hit calls, and enrichment hit membership, overlap, p-value, and FDR values remain diagnostic and are printed even when the gates pass.
 The verifier rejects identical resolved input directories, missing or unreadable files, empty tables, unexpected schemas, duplicate semantic keys, invalid values, and a report path inside either input.
 
 The gates are:
@@ -186,7 +233,11 @@ The gates are:
   `overlap_hits` is parsed using the produced sample-ID grammar and compared as an unordered set, including compound names that contain commas.
   Hit-list, overlap, p-value, and FDR differences are diagnostic; the report records their exact agreement counts.
 
-The default comparison deliberately excludes `mtt_higher_targets.csv`, `mtt_lower_targets.csv`, the orphaned `motive_highexp_PHH.parquet`, and static `SI_tables/readme.txt`.
+- **MT discrepancy enrichment.** Each `mtt_*_targets.csv` must retain its exact six-column schema, 8,858 unique and reference-matched `target_set` keys, and exact reference-matched `target_set_size` values.
+  Overlap membership must agree with `overlap_size`, sizes and probabilities must be valid, and reported FDR values must reproduce Benjamini-Hochberg correction within CSV float-serialization tolerance.
+  Current-versus-reference hit membership, overlap, p-value, FDR, and significant-set differences are diagnostic because the regenerated discrepancy groups are allowed to drift.
+
+The default comparison deliberately excludes only the orphaned `motive_highexp_PHH.parquet` and static `SI_tables/readme.txt`.
 
 The validated committed-versus-regenerated comparison returned exit status 0.
 All four metric row and key sets matched, and all 2,709 core ToxCast rows were bit-exact.
@@ -195,6 +246,8 @@ The fraction of matched PODs differing by more than 10% was 2.4-8.8%.
 The hit-summary key sets matched, with 1,070 of 1,086 complete hit-call rows exact.
 Both enrichment files retained all 8,858 target definitions and universe size 13,176 while the higher hit list changed from 304 to 292 and the lower list from 138 to 134.
 FDR was exact for 6,962 of 8,858 higher-target rows and all 8,858 lower-target rows.
+Both MT enrichment files retained all 8,858 target definitions and valid internally corrected probabilities.
+The current Higher layer has 71 significant target sets rather than 147, while the current Lower layer has 143 rather than 107; those measured deviations remain diagnostic rather than being hidden by seeded outputs.
 
 ## Changes required to make it run
 
@@ -445,7 +498,7 @@ It is not specific to R versions.
 
 Run from clean, each in its assigned environment.
 
-Pass (12): `1_2`, `1_2_1`, `2_1`, `3_1`, `3_2_0`, `3_2_1`, `3_2_2`, `3_2_3`, `4_1`, `02_analyze_AR`, `03_analyze_ER`, `04_analyze_GR`.
+Pass (14): `1_2`, `1_2_1`, `2_1`, `2_2`, `3_1`, `3_2_0`, `3_2_1`, `3_2_2`, `3_2_3`, `4_1`, `01_checkwelleffects`, `02_analyze_AR`, `03_analyze_ER`, `04_analyze_GR`.
 
 Fixed to get there:
 
@@ -455,6 +508,11 @@ Fixed to get there:
 - `2_1` cell 4 pivots to columns named `Metadata_mtt_ridge_norm_Replicate_number_1`, and successfully selects them, but cell 5 refers to `Metadata_mtt_ridge_norm_1`.
   Those are two different polars pivot-naming conventions, so cells 4 and 5 cannot both succeed under any single polars version.
   Fixed by aliasing in cell 4.
+- `2_2` grouped predictions without the functionally determined `Metadata_Compound` key and then selected that dropped column later.
+  The aggregation now retains the compound key, its unused RefChemDB branch no longer reads a deleted file, and the exploratory matched-control plot samples actual DMSO wells from the DINO profile substrate when the prediction table has no DMSO rows.
+  A clean run writes both 8,858-row MTT enrichment tables and completes with no error outputs.
+- `01_checkwelleffects` narrowed its frame to normalized MT and then tried to pivot the discarded LDH and MT ridge-normalized columns.
+  Retaining those two source columns makes the notebook complete with no error outputs.
 
 After the fix, a clean pipeline-environment execution completed with code-cell execution counts 1-10 and no error outputs.
 The mixed-effects section received 9/69/696/6 rows for Axiom cytotoxicity, ToxCast cytotoxicity, ToxCast cell-based, and ToxCast cell-free.
@@ -462,17 +520,8 @@ All four AUROC fits converged; the first three PRAUC fits converged, while the s
 The figures use the observed metrics and still render all four facets, but the cell-free PRAUC post-hoc result should not be interpreted as coming from a converged model.
 Before and after hash manifests confirmed that `compiled_results/` and `SI_tables/` were unchanged.
 
-Still failing, documented rather than patched:
-
-- `2_2_outlier_enrichment_analysis`: cell 1 ends with `group_by(["Metadata_Perturbation", "Variable", "Metadata_Well", "Metadata_Plate"]).agg(...)`, which drops `Metadata_Compound`; later cells select `Metadata_Compound` from that same derived frame and raise `ColumnNotFoundError`.
-  Recovering it means either re-joining or parsing it out of `Metadata_Perturbation`, and guessing wrong would put incorrect numbers into `mtt_higher_targets.csv` / `mtt_lower_targets.csv`, which are verification artifacts.
-  Left unrepaired deliberately.
-  A later dead cell also reads the deleted `refchemdb_oasis.parquet` and builds a `refchemdb` table that no subsequent cell consumes; every `overrepresentation_analysis` call uses `targets` from `cg_motive.parquet`.
-  The input remains deleted because neither the in-scope reproduction nor any produced artifact uses it.
-- `01_checkwelleffects`: `KeyError: 'Metadata_ldh_ridge_norm'` at the pivot in cell 13, although the column is float64 with 21426 non-null values in the source profile -- an earlier transform in the notebook drops it.
-  Exploratory only; produces no verification artifact.
-
-Neither remaining in-scope notebook runs top-to-bottom from a clean kernel.
+The end-to-end runner starts the candidate compiled-results tree without either MTT enrichment file and requires `2_2` to generate both before the semantic verifier runs.
+The verifier gates their target-library identity and internal statistical validity while reporting current-versus-reference hit and significance drift.
 
 ### Outlier enrichment (`err_*_targets.csv`, via `2_1`)
 
@@ -486,9 +535,12 @@ This is a **second, independent divergence**, not more of the POD story: `predic
 The mechanism has not been established; it warrants its own investigation.
 `regression.py` seeds `GroupShuffleSplit` (`random_state=42`) but sets no seed on the XGBoost regressor.
 
-Blocked on the extended config matrix (not run): `1_3` and `05_compare_pods_transforms` need `mad_featselect_log10` and `mad_int_featselect`; `SI_compare_processing` additionally needs `mad_featselect_ap`.
-That is 9 further pipeline runs, and note that the `_int` branch could not have run as published (see defect 2).
-`Plot_images` needs S3 TIFF downloads into PNG subdirectories it does not create.
+The end-to-end command is wired to run the nine extended configurations to the exact artifacts consumed by `1_3`, `SI_compare_processing`, and `05_compare_pods_transforms`, then execute all three notebooks.
+These are current sensitivity layers rather than recovered historical substrates: the `_int` path required a code repair, and the AP dependency and historical RNG state were not published.
+Current AP sampling and permutation use a stable per-compound seed, so those explicit random choices remain fixed across present-day reruns.
+`SI_compare_processing` also required three narrow `cpcnn_pods` to `cpcnn_gmd` name corrections to run in a clean kernel.
+`paper/render_sfig1.py` replaces the broken Figure S1 path with an exact index-resolved download and deterministic renderer.
+The current joined index counts 318,828 fields including 72,519 DMSO fields, while the published 191,754 and 43,641 imply an undocumented nine-site rule.
 
 ### Corrected earlier suspicion
 

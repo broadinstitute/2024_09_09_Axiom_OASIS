@@ -37,6 +37,8 @@ EXPECTED_TOXCAST_ALL_ROWS = {
 EXPECTED_TOXCAST_ALL_TOTAL = 2_709
 EXPECTED_ENRICHMENT_ROWS = 8_858
 EXPECTED_ENRICHMENT_UNIVERSE = 13_176
+SIGNIFICANCE_THRESHOLD = 0.05
+FDR_SERIALIZATION_ATOL = 5e-14
 
 METRIC_KEY = ("Metadata_AggType", "Metadata_Label", "Model_type", "Feat_type")
 METRIC_PAYLOAD = ("AUROC", "PRAUC", "Metadata_Count_0", "Metadata_Count_1")
@@ -73,6 +75,7 @@ HIT_COLUMNS = (
 HIT_SUMMARY_COLUMNS = frozenset((*HIT_SUMMARY_KEY, *HIT_COLUMNS))
 
 ENRICHMENT_FILES = ("err_higher_targets.csv", "err_lower_targets.csv")
+MTT_ENRICHMENT_FILES = ("mtt_higher_targets.csv", "mtt_lower_targets.csv")
 ENRICHMENT_KEY = ("target_set",)
 ENRICHMENT_INTEGER_COLUMNS = (
     "overlap_size",
@@ -83,6 +86,10 @@ ENRICHMENT_INTEGER_COLUMNS = (
 ENRICHMENT_FLOAT_COLUMNS = ("p_value", "fdr")
 ENRICHMENT_COLUMNS = frozenset(
     (*ENRICHMENT_KEY, *ENRICHMENT_INTEGER_COLUMNS, *ENRICHMENT_FLOAT_COLUMNS, "overlap_hits"),
+)
+MTT_ENRICHMENT_INTEGER_COLUMNS = ("overlap_size", "target_set_size")
+MTT_ENRICHMENT_COLUMNS = frozenset(
+    (*ENRICHMENT_KEY, *MTT_ENRICHMENT_INTEGER_COLUMNS, *ENRICHMENT_FLOAT_COLUMNS, "overlap_hits"),
 )
 OVERLAP_MEMBER_PATTERN = re.compile(
     r"(?P<member>.+?_[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?_[A-Za-z]+\d+_plate_\d+)(?:,|$)",
@@ -662,6 +669,23 @@ def _load_enrichment(path: Path, label: str) -> tuple[pd.DataFrame, list[Key]]:
         frame[column] = _numeric_column(frame, column, label, integer=True)
     for column in ENRICHMENT_FLOAT_COLUMNS:
         frame[column] = _numeric_column(frame, column, label, integer=False)
+    frame["__overlap_hit_set"] = _parse_overlap_column(frame, label)
+    return frame, keys
+
+
+def _load_mtt_enrichment(path: Path, label: str) -> tuple[pd.DataFrame, list[Key]]:
+    frame = _read_csv(path, MTT_ENRICHMENT_COLUMNS, label)
+    keys = _keys(frame, ENRICHMENT_KEY, label)
+    frame = frame.copy()
+    for column in MTT_ENRICHMENT_INTEGER_COLUMNS:
+        frame[column] = _numeric_column(frame, column, label, integer=True)
+    for column in ENRICHMENT_FLOAT_COLUMNS:
+        frame[column] = _numeric_column(frame, column, label, integer=False)
+    frame["__overlap_hit_set"] = _parse_overlap_column(frame, label)
+    return frame, keys
+
+
+def _parse_overlap_column(frame: pd.DataFrame, label: str) -> list[frozenset[str]]:
     parsed_overlap_sets: list[frozenset[str]] = []
     for row_number, (value, overlap_size) in enumerate(
         zip(frame["overlap_hits"].tolist(), frame["overlap_size"].tolist(), strict=True),
@@ -672,8 +696,7 @@ def _load_enrichment(path: Path, label: str) -> tuple[pd.DataFrame, list[Key]]:
                 f"{label}: overlap_hits contains a non-string value on CSV row {row_number}",
             )
         parsed_overlap_sets.append(_parse_overlap_hits(value, overlap_size, label, row_number))
-    frame["__overlap_hit_set"] = parsed_overlap_sets
-    return frame, keys
+    return parsed_overlap_sets
 
 
 def _parse_overlap_hits(value: str, expected_size: int, label: str, row_number: int) -> frozenset[str]:
@@ -858,6 +881,160 @@ def _compare_enrichment(
     }
 
 
+def _benjamini_hochberg(p_values: np.ndarray) -> np.ndarray:
+    """Return Benjamini-Hochberg adjusted p-values in original row order."""
+    order = np.argsort(p_values, kind="stable")
+    ranked = p_values[order]
+    scale = len(ranked) / np.arange(1, len(ranked) + 1, dtype=np.float64)
+    adjusted_ranked = np.minimum.accumulate((ranked * scale)[::-1])[::-1]
+    adjusted = np.empty_like(adjusted_ranked)
+    adjusted[order] = np.minimum(adjusted_ranked, 1.0)
+    return adjusted
+
+
+def _mtt_enrichment_validity_report(
+    frame: pd.DataFrame,
+    filename: str,
+    side: str,
+    gate_failures: list[str],
+) -> dict[str, object]:
+    target_sizes = frame["target_set_size"].to_numpy(dtype=np.int64)
+    overlap_sizes = frame["overlap_size"].to_numpy(dtype=np.int64)
+    p_values = frame["p_value"].to_numpy(dtype=np.float64)
+    fdr_values = frame["fdr"].to_numpy(dtype=np.float64)
+    valid_target_sizes = bool((target_sizes > 0).all())
+    valid_overlap_sizes = bool(((overlap_sizes >= 0) & (overlap_sizes <= target_sizes)).all())
+    valid_probability_ranges = bool(
+        ((p_values >= 0.0) & (p_values <= 1.0) & (fdr_values >= 0.0) & (fdr_values <= 1.0)).all(),
+    )
+    expected_fdr = _benjamini_hochberg(p_values)
+    fdr_maximum_absolute_difference = float(np.abs(fdr_values - expected_fdr).max())
+    fdr_matches_p_values = bool(
+        np.allclose(fdr_values, expected_fdr, rtol=1e-12, atol=FDR_SERIALIZATION_ATOL),
+    )
+    _append_gate(
+        gate_failures,
+        valid_target_sizes,
+        f"{filename}: {side} target_set_size values must be positive",
+    )
+    _append_gate(
+        gate_failures,
+        valid_overlap_sizes,
+        f"{filename}: {side} overlap_size values are outside [0, target_set_size]",
+    )
+    _append_gate(
+        gate_failures,
+        valid_probability_ranges,
+        f"{filename}: {side} p_value or fdr values are outside [0, 1]",
+    )
+    _append_gate(
+        gate_failures,
+        fdr_matches_p_values,
+        f"{filename}: {side} fdr values do not match Benjamini-Hochberg correction of p_value",
+    )
+    return {
+        "target_sizes_valid": valid_target_sizes,
+        "overlap_sizes_valid": valid_overlap_sizes,
+        "probability_ranges_valid": valid_probability_ranges,
+        "fdr_matches_p_values": fdr_matches_p_values,
+        "fdr_maximum_absolute_difference": fdr_maximum_absolute_difference,
+        "significant_target_sets": int((fdr_values < SIGNIFICANCE_THRESHOLD).sum()),
+    }
+
+
+def _mtt_enrichment_file_report(
+    reference_root: Path,
+    candidate_root: Path,
+    filename: str,
+    gate_failures: list[str],
+) -> dict[str, object]:
+    reference, reference_keys = _load_mtt_enrichment(reference_root / filename, f"reference/{filename}")
+    candidate, candidate_keys = _load_mtt_enrichment(candidate_root / filename, f"candidate/{filename}")
+    reference_validity = _mtt_enrichment_validity_report(reference, filename, "reference", gate_failures)
+    candidate_validity = _mtt_enrichment_validity_report(candidate, filename, "candidate", gate_failures)
+    reference_key_set = set(reference_keys)
+    candidate_key_set = set(candidate_keys)
+    matched_keys = sorted(reference_key_set & candidate_key_set, key=_key_sort_value)
+    reference_only = reference_key_set - candidate_key_set
+    candidate_only = candidate_key_set - reference_key_set
+    _append_gate(
+        gate_failures,
+        len(reference) == EXPECTED_ENRICHMENT_ROWS,
+        f"{filename}: reference has {len(reference)} target sets; expected {EXPECTED_ENRICHMENT_ROWS}",
+    )
+    _append_gate(
+        gate_failures,
+        len(candidate) == EXPECTED_ENRICHMENT_ROWS,
+        f"{filename}: candidate has {len(candidate)} target sets; expected {EXPECTED_ENRICHMENT_ROWS}",
+    )
+    _append_gate(
+        gate_failures,
+        reference_key_set == candidate_key_set,
+        f"{filename}: target_set key sets differ",
+    )
+    reference_index = _key_index(reference_keys)
+    candidate_index = _key_index(candidate_keys)
+    reference_matched = reference.iloc[[reference_index[key] for key in matched_keys]]
+    candidate_matched = candidate.iloc[[candidate_index[key] for key in matched_keys]]
+    target_sizes_equal = np.equal(
+        reference_matched["target_set_size"].to_numpy(dtype=np.int64),
+        candidate_matched["target_set_size"].to_numpy(dtype=np.int64),
+    )
+    _append_gate(
+        gate_failures,
+        bool(target_sizes_equal.all()) and len(matched_keys) == EXPECTED_ENRICHMENT_ROWS,
+        f"{filename}: target_set_size values do not match exactly for all {EXPECTED_ENRICHMENT_ROWS} target sets",
+    )
+    overlap_size_equal = np.equal(
+        reference_matched["overlap_size"].to_numpy(dtype=np.int64),
+        candidate_matched["overlap_size"].to_numpy(dtype=np.int64),
+    )
+    p_value_equal = np.equal(
+        reference_matched["p_value"].to_numpy(dtype=np.float64),
+        candidate_matched["p_value"].to_numpy(dtype=np.float64),
+    )
+    fdr_equal = np.equal(
+        reference_matched["fdr"].to_numpy(dtype=np.float64),
+        candidate_matched["fdr"].to_numpy(dtype=np.float64),
+    )
+    overlap_sets_equal = [
+        reference_value == candidate_value
+        for reference_value, candidate_value in zip(
+            reference_matched["__overlap_hit_set"].tolist(),
+            candidate_matched["__overlap_hit_set"].tolist(),
+            strict=True,
+        )
+    ]
+    return {
+        "expected_target_sets": EXPECTED_ENRICHMENT_ROWS,
+        "reference_rows": len(reference),
+        "candidate_rows": len(candidate),
+        "matched_target_sets": len(matched_keys),
+        "reference_only_target_sets": len(reference_only),
+        "candidate_only_target_sets": len(candidate_only),
+        "reference_only_target_set_sample": _key_sample(reference_only),
+        "candidate_only_target_set_sample": _key_sample(candidate_only),
+        "target_set_size_exact_rows": int(target_sizes_equal.sum()),
+        "overlap_size_exact_rows": int(overlap_size_equal.sum()),
+        "overlap_hit_sets_exact_rows": int(sum(overlap_sets_equal)),
+        "p_value_exact_rows": int(p_value_equal.sum()),
+        "fdr_exact_rows": int(fdr_equal.sum()),
+        "reference_validity": reference_validity,
+        "candidate_validity": candidate_validity,
+    }
+
+
+def _compare_mtt_enrichment(
+    reference_root: Path,
+    candidate_root: Path,
+    gate_failures: list[str],
+) -> dict[str, object]:
+    return {
+        filename: _mtt_enrichment_file_report(reference_root, candidate_root, filename, gate_failures)
+        for filename in MTT_ENRICHMENT_FILES
+    }
+
+
 def _resolve_input_directory(path: str | Path, label: str) -> Path:
     candidate = Path(path).expanduser()
     try:
@@ -881,6 +1058,7 @@ def verify_compiled_results(reference: str | Path, candidate: str | Path) -> Ver
     pods = _compare_pods(reference_root, candidate_root, gate_failures)
     hit_summary = _compare_hit_summary(reference_root, candidate_root, gate_failures)
     enrichment = _compare_enrichment(reference_root, candidate_root, gate_failures)
+    mtt_enrichment = _compare_mtt_enrichment(reference_root, candidate_root, gate_failures)
     report: dict[str, object] = {
         "schema_version": REPORT_SCHEMA_VERSION,
         "status": "pass" if not gate_failures else "fail",
@@ -891,10 +1069,9 @@ def verify_compiled_results(reference: str | Path, candidate: str | Path) -> Ver
         "pods": pods,
         "hit_summary": hit_summary,
         "enrichment": enrichment,
+        "mtt_enrichment": mtt_enrichment,
         "excluded_artifacts": [
             "motive_highexp_PHH.parquet",
-            "mtt_higher_targets.csv",
-            "mtt_lower_targets.csv",
             "SI_tables/readme.txt",
         ],
     }
@@ -997,6 +1174,23 @@ def _print_human_summary(result: VerificationResult) -> None:
             f"target sizes exact {file_report['target_set_size_exact_rows']}/{file_report['matched_target_sets']}, "
             f"overlap sets exact {file_report['overlap_hit_sets_exact_rows']}/{file_report['matched_target_sets']}, "
             f"FDR exact {file_report['fdr_exact_rows']}/{file_report['matched_target_sets']}",
+        )
+
+    mtt_enrichment = _mapping(result.report["mtt_enrichment"])
+    print("MT discrepancy enrichment CSVs:")
+    for filename in MTT_ENRICHMENT_FILES:
+        file_report = _mapping(mtt_enrichment[filename])
+        reference_validity = _mapping(file_report["reference_validity"])
+        candidate_validity = _mapping(file_report["candidate_validity"])
+        print(
+            f"  {filename}: rows {file_report['reference_rows']}/{file_report['candidate_rows']}, "
+            f"matched target sets {file_report['matched_target_sets']}, target sizes exact "
+            f"{file_report['target_set_size_exact_rows']}/{file_report['matched_target_sets']}, "
+            f"significant target sets {reference_validity['significant_target_sets']}/"
+            f"{candidate_validity['significant_target_sets']}, overlap sets exact "
+            f"{file_report['overlap_hit_sets_exact_rows']}/{file_report['matched_target_sets']}, "
+            f"FDR internally valid {reference_validity['fdr_matches_p_values']}/"
+            f"{candidate_validity['fdr_matches_p_values']}",
         )
 
 

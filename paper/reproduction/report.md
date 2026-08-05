@@ -8,8 +8,8 @@ Historical ledger status is retained for provenance and does not determine the e
 Mode: `tracked`.
 Targets covered: 53.
 Executed groups: sources_design, activity_pods, regression_enrichment, toxcast, classifier, external_image.
-Validated tracked inputs: 58.
-Ledger SHA-256: `abbd88ada4cfa7615c84b421b7bd9f566a435472c4c79c38ad989e82087af38f`.
+Validated tracked inputs: 60.
+Ledger SHA-256: `795bcb88a56565ec032d5c2ca05054672994daa5978c39b997d23025b6156ce4`.
 
 ## Execution outcome counts
 
@@ -25,9 +25,8 @@ Ledger SHA-256: `abbd88ada4cfa7615c84b421b7bd9f566a435472c4c79c38ad989e82087af38
 | Ledger status | Count |
 | --- | ---: |
 | blocked | 3 |
-| out-of-scope | 1 |
 | reproduced | 7 |
-| reproduced-with-deviation | 42 |
+| reproduced-with-deviation | 43 |
 
 ## Evidence coverage
 
@@ -117,7 +116,7 @@ DINO cell-based target effects: {"dino_vs_cellprofiler_cellbased_auroc": {"mean_
 
 ## External image boundary
 
-The raw source TIFF and image index are external and intentionally absent.
+The raw source TIFF and image index are absent from the tracked audit, but the external producer and measured inventory-count deviation are documented.
 
 ## Generated figures
 
@@ -692,7 +691,7 @@ Producer: 2_downstream_analysis/manuscript_notebooks/2_2_outlier_enrichment_anal
 Ledger evidence: evidence/mt-discrepancy-enrichment.md.
 Historical ledger status: `reproduced-with-deviation`.
 Execution outcome: `checked`; availability: `available`; evidence strength: `derived-artifact-reanalysis`.
-Declared deviation: Stored 261-well group and 147 significant sets support all named CYPs and transporters plus six HTR sets; current selector gives 262 wells, no DRD or adrenergic set is significant, and two named compounds lack significant overlaps.
+Declared deviation: The current rerun selects 262 wells and 71 significant sets, retaining six named CYPs and three named transporters but no significant HTR set; all 8858 target definitions reproduce exactly.
 
 | Target-specific check | Observed | Expected | Passed |
 | --- | --- | --- | --- |
@@ -705,7 +704,7 @@ Validated inputs:
 - `paper/evidence/mt-discrepancy-enrichment.md`
 
 Limitations and deviations:
-- Stored 261-well group and 147 significant sets support all named CYPs and transporters plus six HTR sets; current selector gives 262 wells, no DRD or adrenergic set is significant, and two named compounds lack significant overlaps
+- The current rerun selects 262 wells and 71 significant sets, retaining six named CYPs and three named transporters but no significant HTR set; all 8858 target definitions reproduce exactly
 - Tracked derived artifacts were reanalyzed; classifiers, curves, predictions, and upstream workflows were not regenerated.
 
 ### ENRICH-004 - Lower morphology-predicted than observed MT cases
@@ -718,7 +717,7 @@ Producer: 2_downstream_analysis/manuscript_notebooks/2_2_outlier_enrichment_anal
 Ledger evidence: evidence/mt-discrepancy-enrichment.md.
 Historical ledger status: `reproduced-with-deviation`.
 Execution outcome: `checked`; availability: `available`; evidence strength: `derived-artifact-reanalysis`.
-Declared deviation: Stored 131-well group supports 18 proteasome sets and three CYP sets; current selector gives 142 wells, carfilzomib is absent from overlaps, and three process labels lack repository mappings.
+Declared deviation: The current rerun selects 142 wells and 143 significant sets, retaining 15 proteasome and two CYP sets; carfilzomib and three process mappings remain unsupported.
 
 | Target-specific check | Observed | Expected | Passed |
 | --- | --- | --- | --- |
@@ -731,7 +730,7 @@ Validated inputs:
 - `paper/evidence/mt-discrepancy-enrichment.md`
 
 Limitations and deviations:
-- Stored 131-well group supports 18 proteasome sets and three CYP sets; current selector gives 142 wells, carfilzomib is absent from overlaps, and three process labels lack repository mappings
+- The current rerun selects 142 wells and 143 significant sets, retaining 15 proteasome and two CYP sets; carfilzomib and three process mappings remain unsupported
 - Tracked derived artifacts were reanalyzed; classifiers, curves, predictions, and upstream workflows were not regenerated.
 
 ### TOXCAST-001 - OASIS and ToxCast overlap
@@ -1018,24 +1017,27 @@ Limitations and deviations:
 Source: supp:p2:figure-s1.
 Kind: figure.
 Expected: Plate 41002889, well L12, site 6; representative of 191754 images including 43641 DMSO controls.
-Full acceptance: exact: image identity and inventory counts agree when source images are available.
-Producer: 2_downstream_analysis/other_notebooks/Plot_images.ipynb.
-Ledger evidence: -.
-Historical ledger status: `out-of-scope`.
+Full acceptance: close: plate, well, site, DMSO identity, and five-channel content agree exactly; inventory drift is acceptable only when measured directly from the current joined index and tied to a documented missing selection rule.
+Producer: paper/render_sfig1.py; 2_downstream_analysis/other_notebooks/Plot_images.ipynb.
+Ledger evidence: evidence/figure-s1.md.
+Historical ledger status: `reproduced-with-deviation`.
 Execution outcome: `out-of-scope`; availability: `out-of-scope`; evidence strength: `unavailable`.
-Declared deviation: Existing recipe excludes external image download and missing output setup.
+Declared deviation: The exact DMSO field and five channels resolve and render; the current joined index has 318828 fields including 72519 DMSO fields, while the published counts imply an undocumented nine-site selection rule.
 
 | Target-specific check | Observed | Expected | Passed |
 | --- | --- | --- | --- |
 | SFIG-1:01 - tracked navigation image identity trace | True | True | true |
-| SFIG-1:02 - external source image available | False | False | true |
+| SFIG-1:02 - external source-image reproduction documented | True | True | true |
+| SFIG-1:03 - external source image available | False | False | true |
 
 Validated inputs:
 - `paper/figures/figure-s1.jpg`
 - `paper/paper.md`
+- `paper/evidence/figure-s1.md`
+- `paper/render_sfig1.py`
 
 Limitations and deviations:
-- Existing recipe excludes external image download and missing output setup
+- The exact DMSO field and five channels resolve and render; the current joined index has 318828 fields including 72519 DMSO fields, while the published counts imply an undocumented nine-site selection rule
 - The raw source image is external and excluded from tracked-only execution.
 
 ### SFIG-2 - Technical factors and paired-assay prediction diagnostics

@@ -1,15 +1,25 @@
+import hashlib
+
+import numpy as np
+import pandas as pd
 import polars as pl
 from copairs import map
 from copairs.matching import assign_reference_index
-from tqdm import tqdm
-import pandas as pd
-import numpy as np
-import random
 from joblib import Parallel, delayed
+from tqdm import tqdm
 
 n_cpus = 10
 
+
+def _rng_for(context: str, compound: str) -> np.random.Generator:
+    payload = f"axiom-oasis-ap-v1\0{context}\0{compound}".encode()
+    seed = int.from_bytes(hashlib.sha256(payload).digest()[:8], byteorder="big")
+    return np.random.default_rng(seed)
+
+
 def phenotypic_consistency_dmso(cmpd: str, prof_path: str):
+
+    rng = _rng_for("dmso", cmpd)
 
     profiles = pl.read_parquet(prof_path)
     feat_cols = [i for i in profiles.columns if "Metadata" not in i]
@@ -22,11 +32,11 @@ def phenotypic_consistency_dmso(cmpd: str, prof_path: str):
     )
 
     # Choose 720 samples to have even multiple of 16
-    indices = np.random.choice(np.arange(cmpd_dmso.shape[0]), size=720, replace=False)
+    indices = rng.choice(np.arange(cmpd_dmso.shape[0]), size=720, replace=False)
     cmpd_dmso = cmpd_dmso.filter(pl.col("index").is_in(indices))
 
     # create random DMSO groups
-    categories = np.random.permutation(np.repeat(np.arange(1, 46), 16))
+    categories = rng.permutation(np.repeat(np.arange(1, 46), 16))
     cmpd_dmso = cmpd_dmso.with_columns(
         pl.Series("Metadata_DMSO_Category", categories)
     ).to_pandas()
@@ -50,6 +60,8 @@ def phenotypic_consistency_dmso(cmpd: str, prof_path: str):
 def phenotypic_activity_compound(cmpd: str, prof_path: str):
     """ Function to process each compound in parallel """
 
+    rng = _rng_for("compound", cmpd)
+
     # get data
     profiles = pl.scan_parquet(prof_path)
     feat_cols = [i for i in profiles.collect_schema().names() if "Metadata" not in i]
@@ -59,9 +71,9 @@ def phenotypic_activity_compound(cmpd: str, prof_path: str):
     cmpd_profs = profiles.filter(pl.col("Metadata_Compound") == cmpd).collect()
     cmpd_plates = cmpd_profs.select(pl.col("Metadata_Plate")).to_series().unique().to_list()
     cmpd_dmso = dmso_profiles.filter(pl.col("Metadata_Plate").is_in(cmpd_plates)).collect().with_row_index()
-    
+
     # Choose 720 samples to have even multiple of 16
-    indices = np.random.choice(np.arange(cmpd_dmso.shape[0]), size=720, replace=False)
+    indices = rng.choice(np.arange(cmpd_dmso.shape[0]), size=720, replace=False)
     cmpd_dmso = cmpd_dmso.filter(pl.col("index").is_in(indices)).drop("index")
 
     cmpd_df = pl.concat([cmpd_profs, cmpd_dmso]).to_pandas()
@@ -95,7 +107,7 @@ def calculate_ap(prof_path: str):
 
     lf = pl.scan_parquet(prof_path)
     compounds = lf.select("Metadata_Compound").collect().to_series().unique().to_list()
-    compounds = [i for i in compounds if "DMSO" not in i]
+    compounds = sorted(i for i in compounds if "DMSO" not in i)
 
     # Calculate dmso AP in parallel
     dmso_results = Parallel(n_jobs=n_cpus)(delayed(phenotypic_consistency_dmso)(cmpd, prof_path) for cmpd in tqdm(compounds))

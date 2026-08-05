@@ -6,17 +6,17 @@ It does not resolve the mechanistic hypotheses in `INTERPRETATION-001`.
 ## Source layers and provenance
 
 The camera-ready results define 261 wells with morphology-predicted MT higher than observed and 131 underpredicted wells, reported as 2.0% and 1.0% of samples.
-The target ledger names notebook `2_1_predict_continuous_assays.ipynb` as producer, but cell 16 of `2_2_outlier_enrichment_analysis.ipynb` writes `mtt_higher_targets.csv` and `mtt_lower_targets.csv`.
-The producer field is left unchanged, and this mismatch is a provenance defect.
+An earlier target ledger named notebook `2_1_predict_continuous_assays.ipynb` as producer, but cell 16 of `2_2_outlier_enrichment_analysis.ipynb` writes `mtt_higher_targets.csv` and `mtt_lower_targets.csv`.
+The ledger now names notebook 2.2 directly.
 The two CSVs were committed at `220c08a`, while the notebook later received path-only changes at `e473821` without regenerated stored outputs.
-`REPRODUCING.md` deliberately leaves notebook 2.2 non-runnable because its aggregation drops `Metadata_Compound` and later cells select that missing column.
-The notebook also contains a dead read of deleted `refchemdb_oasis.parquet`, but every executed enrichment call uses the `cg_motive.parquet` target library.
-The notebook was neither executed nor edited for this audit, and the regression or enrichment pipeline was not rerun.
+The current reproduction retains the functionally determined `Metadata_Compound` grouping key, removes the unused read of deleted `refchemdb_oasis.parquet`, and samples actual DMSO wells from the DINO profile substrate for its exploratory cluster control.
+Every enrichment call continues to use the `cg_motive.parquet` target library.
+A clean isolated execution now completes without error and regenerates both 8,858-row CSVs.
 
 ## Discrepancy-group contract
 
-Notebook 2.2 reads `1_snakemake/outputs/cellprofiler/mad_featselect/classifier_results/axiom_continuous_predictions.parquet` and filters `Model_type == "Morphology"`.
-It joins committed metadata on plate and well, then averages predicted MT, observed MT, and cell count by perturbation, assay variable, well, and plate.
+Notebook 2.2 reads the ignored current pipeline output `1_snakemake/outputs/cellprofiler/mad_featselect/classifier_results/axiom_continuous_predictions.parquet` and filters `Model_type == "Morphology"`.
+It joins the verified Zenodo metadata on plate and well, then averages predicted MT, observed MT, and cell count by perturbation, assay variable, well, and plate.
 `Metadata_Perturbation` encodes compound and concentration, so the resulting sample grain is one compound-concentration exposure well identified by perturbation, well, and plate.
 It filters the assay variable to `Metadata_mtt_ridge_norm`, leaving 13,176 stored MT rows and 13,176 unique `Unique_ID` values.
 The signed residual is `Predicted - Observed`.
@@ -29,7 +29,7 @@ Higher therefore means that morphology predicts a larger normalized MT value tha
 Stored output reports 261 Higher, 131 Lower, and 12,784 Normal rows, which sum exactly to 13,176.
 Those counts are 1.9809%, 0.9942%, and 97.0249%, agreeing with the camera-ready 2.0% and 1.0% after rounding.
 
-A separate read-only reconstruction used the current committed prediction Parquet and the notebook's exact plate-well metadata join without recovering or guessing `Metadata_Compound`.
+A clean current-code reconstruction used that ignored pipeline-output prediction Parquet and the notebook's exact plate-well metadata join while retaining `Metadata_Compound`, which is uniquely determined for every existing group.
 It retained 13,176 MT rows, had sample SD 0.07567157318680068 and threshold 0.19523265882194576, and selected 262 Higher, 142 Lower, and 12,772 Normal rows.
 Those current counts are 1.9885%, 1.0777%, and 96.9338%, so the current prediction layer does not reproduce the stored count membership scale exactly.
 The historical full hit lists were not stored separately, so exact historical-versus-current membership identity cannot be measured from the CSV overlaps.
@@ -52,11 +52,22 @@ The CSVs omit `hit_list_size` and `universe_size`, so 261, 131, and 13,176 are r
 The notebook serializes a Python set with `",".join(overlap)`, making textual `overlap_hits` order nondeterministic across processes.
 This audit decoded sample identifiers by their well and plate suffixes and compared overlaps as unordered sets, finding exact agreement between every decoded overlap count and the target library.
 
-The higher CSV contains exactly 147 significant target sets.
+### Regenerated candidate validation
+
+The semantic verifier now includes both regenerated MT CSVs.
+It requires the exact six-column schema, 8,858 unique and reference-matched target-set keys, exact reference-matched `target_set_size` values, valid overlap membership and bounds, finite probabilities in [0, 1], and FDR values that reproduce Benjamini-Hochberg correction of the reported p-values.
+Hit membership, overlap size, p-value, FDR, and significant-set drift remain diagnostic because the current 262/142 discrepancy groups differ from the historical 261/131 groups.
+All 8,858 target-set sizes reproduce exactly in both files.
+The Higher rerun has 7,218 exact overlap-size rows, 6,620 exact p-value rows, 8,594 exact FDR rows, and 71 significant target sets rather than 147.
+The Lower rerun has 6,099 exact overlap-size rows, 5,537 exact p-value rows, 7,362 exact FDR rows, and 143 significant target sets rather than 107.
+
+### Committed reference enrichment
+
+The committed higher CSV contains exactly 147 significant target sets.
 Their FDR values range from 1.5816846329335925e-06 to 0.04859910648923281, target-set sizes range from 15 to 5,895 exposure wells, and overlaps range from 5 to 165 wells.
 Its five lowest-FDR rows are KDR (FDR 1.58168e-06, 29/365), FLT4 (2.29668e-06, 19/167), CYP3A4 (2.29668e-06, 165/5,895), CYP2C8 (2.29668e-06, 82/2,140), and CYP3A5 (5.90692e-06, 85/2,333).
 
-The lower CSV contains 107 significant target sets.
+The committed lower CSV contains 107 significant target sets.
 Their FDR values range from 1.5518654039272212e-06 to 0.048787574030544074, target-set sizes range from 28 to 5,895 exposure wells, and overlaps range from 4 to 83 wells.
 Its five lowest-FDR rows are MAPK9 (FDR 1.55187e-06, 11/75), PSMB5 (1.71524e-06, 9/46), ABL1 (1.71524e-06, 19/321), FLT3 (6.74935e-05, 13/182), and RND3 (8.16835e-05, 9/74).
 

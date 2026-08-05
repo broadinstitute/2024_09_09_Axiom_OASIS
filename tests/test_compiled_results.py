@@ -95,6 +95,20 @@ def _enrichment_frame(hit_list_size: int, *, reverse_hits: bool) -> pd.DataFrame
     )
 
 
+def _mtt_enrichment_frame(*, p_value: float, overlap_size: int) -> pd.DataFrame:
+    hits = ["Drug_A_1.0_A01_plate_100", "Drug_B_2.0_A02_plate_100"][:overlap_size]
+    return pd.DataFrame(
+        {
+            "target_set": [f"target_{index:05d}" for index in range(ENRICHMENT_FIXTURE_ROWS)],
+            "overlap_size": [overlap_size] * ENRICHMENT_FIXTURE_ROWS,
+            "target_set_size": [20] * ENRICHMENT_FIXTURE_ROWS,
+            "p_value": [p_value] * ENRICHMENT_FIXTURE_ROWS,
+            "overlap_hits": [",".join(hits)] * ENRICHMENT_FIXTURE_ROWS,
+            "fdr": [p_value] * ENRICHMENT_FIXTURE_ROWS,
+        },
+    )
+
+
 def _write_csv(frame: pd.DataFrame, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     frame.to_csv(path, index=False)
@@ -116,6 +130,8 @@ def _build_fixture(root: Path) -> tuple[Path, Path]:
     _write_csv(_hit_summary_frame(), reference / verifier.HIT_SUMMARY_FILE)
     for filename in verifier.ENRICHMENT_FILES:
         _write_csv(_enrichment_frame(10, reverse_hits=False), reference / filename)
+    for filename in verifier.MTT_ENRICHMENT_FILES:
+        _write_csv(_mtt_enrichment_frame(p_value=0.5, overlap_size=2), reference / filename)
 
     shutil.copytree(reference, candidate)
     for filename in verifier.EXPECTED_METRIC_ROWS:
@@ -131,6 +147,8 @@ def _build_fixture(root: Path) -> tuple[Path, Path]:
         enrichment = _enrichment_frame(11, reverse_hits=True)
         enrichment.loc[0, "fdr"] = 0.123
         _write_csv(enrichment, candidate / filename)
+    for filename in verifier.MTT_ENRICHMENT_FILES:
+        _write_csv(_mtt_enrichment_frame(p_value=0.25, overlap_size=1), candidate / filename)
     return reference, candidate
 
 
@@ -231,6 +249,13 @@ class CompiledResultsVerifierTest(unittest.TestCase):
             file_report = enrichment[filename]
             self.assertEqual(file_report["overlap_hit_sets_exact_rows"], ENRICHMENT_FIXTURE_ROWS)
             self.assertEqual(file_report["fdr_exact_rows"], ENRICHMENT_FIXTURE_ROWS - 1)
+        mtt_enrichment = report["mtt_enrichment"]
+        self.assertIsInstance(mtt_enrichment, dict)
+        for filename in verifier.MTT_ENRICHMENT_FILES:
+            file_report = mtt_enrichment[filename]
+            self.assertEqual(file_report["target_set_size_exact_rows"], ENRICHMENT_FIXTURE_ROWS)
+            self.assertEqual(file_report["overlap_hit_sets_exact_rows"], 0)
+            self.assertEqual(file_report["candidate_validity"]["fdr_matches_p_values"], True)
 
     def test_core_metric_payload_drift_fails(self) -> None:
         """Gate a one-value change in the 2,709-row deterministic core."""
@@ -343,6 +368,32 @@ class CompiledResultsVerifierTest(unittest.TestCase):
 
         self.assertFalse(result.passed)
         self.assertTrue(any("target_set_size values do not match" in failure for failure in result.gate_failures))
+
+    def test_mtt_enrichment_target_size_mismatch_fails(self) -> None:
+        """Gate drift in the MT target-library definition."""
+        filename = "mtt_higher_targets.csv"
+        frame = pd.read_csv(self.candidate / filename, keep_default_na=False)
+        frame.loc[0, "target_set_size"] += 1
+        frame.to_csv(self.candidate / filename, index=False)
+
+        result = verifier.verify_compiled_results(self.reference, self.candidate)
+
+        self.assertFalse(result.passed)
+        self.assertTrue(any(filename in failure and "target_set_size" in failure for failure in result.gate_failures))
+
+    def test_mtt_enrichment_fdr_must_match_its_p_values(self) -> None:
+        """Reject internally inconsistent MT multiple-testing output."""
+        filename = "mtt_lower_targets.csv"
+        frame = pd.read_csv(self.candidate / filename, keep_default_na=False)
+        frame.loc[0, "fdr"] = 0.9
+        frame.to_csv(self.candidate / filename, index=False)
+
+        result = verifier.verify_compiled_results(self.reference, self.candidate)
+
+        self.assertFalse(result.passed)
+        self.assertTrue(
+            any(filename in failure and "Benjamini-Hochberg" in failure for failure in result.gate_failures),
+        )
 
     def test_duplicate_null_safe_pod_key_is_invalid(self) -> None:
         """Treat two empty OASIS IDs on the same compound/endpoint as duplicates."""

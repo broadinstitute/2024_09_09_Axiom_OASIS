@@ -122,6 +122,7 @@ pillow = "==12.3.0"
 sh = "==2.2.4"
 jupyterlab = "*"
 ipykernel = "*"
+marimo = "==0.23.16"
 
 [environments]
 pipeline = ["pipeline"]
