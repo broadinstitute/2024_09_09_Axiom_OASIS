@@ -14,7 +14,7 @@ from typing import cast
 
 import polars as pl
 
-from oasis_images.contract import (
+from image_archive.contract import (
     CodecContract,
     Contract,
     DestinationContract,
@@ -22,7 +22,7 @@ from oasis_images.contract import (
     InventoryContract,
     SourceContract,
 )
-from oasis_images.inventory import (
+from image_archive.inventory import (
     InventoryValidationError,
     attest_existing_inventory_summary,
     build_inventory,

@@ -10,10 +10,10 @@ from pathlib import Path
 
 import pytest
 
-from oasis_images.contract import ContractError, load_contract
+from image_archive.contract import ContractError, load_contract
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SOURCE_CONTRACT = REPO_ROOT / "images" / "source.toml"
+SOURCE_CONTRACT = REPO_ROOT / "image_archive" / "axiom" / "source.toml"
 
 
 def _load_text(text: str):  # noqa: ANN202

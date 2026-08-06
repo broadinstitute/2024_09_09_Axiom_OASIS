@@ -3,7 +3,7 @@
 This workflow builds a storage derivative of the Axiom OASIS TIFF collection.
 The original Cell Painting Gallery TIFFs remain the source of truth.
 
-The tracked contract in `images/source.toml` is the authoritative dataset description.
+The tracked contract in `image_archive/axiom/source.toml` is the authoritative dataset description.
 It pins the image index, expected inventory, source S3 namespace, codec settings, destination layout, batches, and channels without duplicating those values in Python.
 Its channel-number mapping is DNA 1, ER 2, AGP 3, RNA 4, Mito 5, and Brightfield 6.
 The only v1 codec is JPEG XL HQ with distance 1.0 and effort 5, identified as `jpegxl-d1-e5`.
@@ -16,22 +16,34 @@ Each complete source TIFF becomes one standard `.jxl` object at:
   jpegxl-d1-e5/<batch>/images/<plate>/<stem>.jxl
 ```
 
-The completed Spirit v1 run is frozen in `images/run-receipt-2026-08-05.toml`.
+The completed Spirit v1 run is frozen in `image_archive/axiom/run-receipt-2026-08-05.toml`.
 That machine-readable receipt binds the exact source and manifest identities, codec runtime, two conversion phases, a deterministically specified ledger evidence digest and totals, and the external validation report without copying generated image data into Git.
 
 No channel stacking, normalization, intensity transformation, cropping, resizing, or biological recalibration is performed.
-The HQ setting is a declared storage tier, not evidence that downstream biological measurements are unchanged.
+
+## Known limitation: do not measure from this archive
+
+`jpegxl-d1-e5` is a lossy tier, and no one has checked whether profiles computed from these `.jxl` objects match profiles computed from the source TIFFs for this dataset.
+Use the Cell Painting Gallery TIFFs for anything that ends up in a result, and treat this archive as a storage derivative for browsing, visualization, and retrieval.
+
+The tier is not unexamined: JUMP-lite, where these settings come from, evaluates it against a lossless reference on a large JUMP subset.
+That was measured on JUMP, not on Axiom OASIS.
+Brightfield is the weakest channel here by a wide margin, because transmitted light occupies a narrow intensity band that a perceptual codec has no way to know is load-bearing.
+
+Measurements, the codec authors' own guidance on this failure mode, and what remains to be checked are in [issue #44](https://github.com/broadinstitute/2024_09_09_Axiom_OASIS/issues/44).
 
 ## Requirements
 
 Run through the dedicated Pixi environment from the repository root.
+That environment is still named `images` even though the directories were renamed: `pixi.lock` keys environments by name, so renaming it rewrites the lockfile and invalidates the `pixi_lock_sha256` pinned in the run receipt.
 Before any image transfer, provision and register the destination according to the host's storage policy.
 The command-line interface requires the configured destination to exist, be writable, contain no symlinked path components, and reside on a non-root mounted filesystem.
 User, group, registry, and exact-path policy remain in the runbook and service configuration rather than the reusable Python code.
 
 ## Reuse
 
-For another dataset with the same six-column Axiom index schema, copy `images/source.toml` and change the index identity, S3 namespace, expected counts, batches, channels, codec settings, destination root, and object template.
+The Python package in `image_archive/` is the dataset-agnostic tool; `image_archive/axiom/` is one worked instance of it.
+For another dataset with the same six-column Axiom index schema, create a sibling directory such as `image_archive/<dataset>/`, copy `source.toml` into it, and change the index identity, S3 namespace, expected counts, batches, channels, codec settings, destination root, and object template.
 Run `inventory` to build the canonical manifest, record its inventory and rejected-row SHA-256 values in the contract, and then run `archive`.
 The conversion engine consumes only the canonical manifest columns and the contract, so image dimensions and dataset names are not compiled into the runtime.
 
@@ -40,23 +52,23 @@ The conversion engine consumes only the canonical manifest columns and the contr
 Run the metadata-only preflight first:
 
 ```bash
-direnv exec . pixi run -e images python -m oasis_images inventory \
-  --contract images/source.toml \
+direnv exec . pixi run -e images python -m image_archive inventory \
+  --contract image_archive/axiom/source.toml \
   --remote-snapshot
 ```
 
-The inventory command is the preflight: it verifies `images/source.toml` and the pinned `index.parquet` artifact, checks the expected row, batch, plate, field, channel, complete-URI, and incomplete-row counts, and plans destination keys.
+The inventory command is the preflight: it verifies `image_archive/axiom/source.toml` and the pinned `index.parquet` artifact, checks the expected row, batch, plate, field, channel, complete-URI, and incomplete-row counts, and plans destination keys.
 It paginates the four public S3 batch prefixes without downloading TIFF pixels and records size, ETag, last-modified time, storage class, and version ID where available.
 Missing indexed objects fail the preflight.
 Prefix-extra objects are preserved in a separate report and never added silently to the pinned-index scope.
-The final enriched inventory and rejected-row artifact are SHA-256 pinned in `images/source.toml`, and every generated preflight artifact is attested in the self-verifying summary.
+The final enriched inventory and rejected-row artifact are SHA-256 pinned in `image_archive/axiom/source.toml`, and every generated preflight artifact is attested in the self-verifying summary.
 It must not download any source TIFF or write any JPEG XL object.
 
 After reviewing the preflight report and confirming storage registration, start or resume the archive explicitly:
 
 ```bash
-direnv exec . pixi run -e images python -m oasis_images archive \
-  --contract images/source.toml \
+direnv exec . pixi run -e images python -m image_archive archive \
+  --contract image_archive/axiom/source.toml \
   --workers 64 \
   --max-in-flight 128 \
   --max-attempts 5 \
@@ -81,7 +93,7 @@ After the smoke audit passes, install the tracked user service from the canonica
 ```bash
 mkdir -p ~/.config/systemd/user
 ln -sfn \
-  /work/users/shsingh/GitHub/oasis/2024_09_09_Axiom_OASIS/images/oasis-axiom-jpegxl.service \
+  /work/users/shsingh/GitHub/oasis/2024_09_09_Axiom_OASIS/image_archive/axiom/oasis-axiom-jpegxl.service \
   ~/.config/systemd/user/oasis-axiom-jpegxl.service
 systemctl --user daemon-reload
 systemctl --user enable --now oasis-axiom-jpegxl.service
@@ -95,10 +107,10 @@ The conversion service stops after ledger completion and does not run the whole-
 After conversion has stopped and released the destination lock, inspect durable progress and run the final completeness gate separately:
 
 ```bash
-direnv exec . pixi run -e images python -m oasis_images status \
-  --contract images/source.toml
-direnv exec . pixi run -e images python -m oasis_images validate \
-  --contract images/source.toml \
+direnv exec . pixi run -e images python -m image_archive status \
+  --contract image_archive/axiom/source.toml
+direnv exec . pixi run -e images python -m image_archive validate \
+  --contract image_archive/axiom/source.toml \
   --workers 64 \
   --max-attempts 5
 ```

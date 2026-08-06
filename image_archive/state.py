@@ -1,5 +1,5 @@
 # Copyright (c) 2026 Broad Institute.
-"""Durable SQLite state for the OASIS image archive.
+"""Durable SQLite state for the JPEG XL image archive.
 
 The database is an execution ledger, not an output-existence cache. A record is
 ``verified`` only after the archive worker has validated and atomically promoted

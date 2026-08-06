@@ -9,7 +9,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from oasis_images.state import ArchiveState, ManifestIdentity, StateConflictError
+from image_archive.state import ArchiveState, ManifestIdentity, StateConflictError
 
 if TYPE_CHECKING:
     from collections.abc import Iterator

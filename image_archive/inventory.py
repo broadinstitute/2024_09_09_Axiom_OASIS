@@ -1,5 +1,5 @@
 # Copyright (c) 2026 Broad Institute.
-"""Build and validate the frozen OASIS source-image inventory."""
+"""Build and validate a frozen source-image inventory from an Axiom-style index."""
 
 from __future__ import annotations
 
