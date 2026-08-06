@@ -1,0 +1,81 @@
+[index]
+record_id = 17067683
+filename = "index.parquet"
+url = "https://zenodo.org/api/records/17067683/files/index.parquet/content"
+size_bytes = 2524798
+md5 = "b56e249504f76bc2f6025f90abc8608c"
+sha256 = "f83a16fa21a5ec20df433706ef889dc7cc8003ff5aabb057e9e54d6903be73f9"
+
+[source]
+bucket = "cellpainting-gallery"
+prefix = "cpg0037-oasis/axiom/images"
+anonymous = true
+
+[inventory]
+row_count = 2019342
+complete_unique_tiff_uris = 2017182
+incomplete_rows = 2160
+field_count = 336197
+plate_count = 68
+channel_count = 6
+manifest_sha256 = "b8c20a37213831b55161a8ed9fe0a1c60522c8951f2b5e19713c7105c8200381"
+rejected_sha256 = "0bd61c7b852530c8d3ec491f2a99bab2f4cf15bbf1b015389c571ca7c768a66a"
+
+[codec]
+id = "jpegxl-d1-e5"
+name = "jpegxl"
+profile = "hq"
+lossless = false
+distance = 1.0
+effort = 5
+reference_repository = "https://github.com/afermg/JUMP_lite"
+reference_commit = "5f0fc9be6135e74cfee0b3504fd20a35a9531a22"
+reference_path = "src/compress_tif.py"
+reference_sha256 = "9bb6bec0a23a8fb091c1e1990f62690c55b74e34d1a49165b21bbb1aabaa54bf"
+reference_tier = "jpegxl_lossy_hq"
+
+[destination]
+root = "/work/datasets/cpg0037-oasis/axiom/images-jxl/v1"
+object_template = "{codec_id}/{batch}/images/{plate}/{stem}.jxl"
+
+[[channels]]
+source = "DNA"
+destination = "DNA"
+channel_number = 1
+
+[[channels]]
+source = "ER"
+destination = "ER"
+channel_number = 2
+
+[[channels]]
+source = "AGP"
+destination = "AGP"
+channel_number = 3
+
+[[channels]]
+source = "RNA"
+destination = "RNA"
+channel_number = 4
+
+[[channels]]
+source = "Mito"
+destination = "Mito"
+channel_number = 5
+
+[[channels]]
+source = "Brightfield"
+destination = "Brightfield"
+channel_number = 6
+
+[[batches]]
+name = "prod_25"
+
+[[batches]]
+name = "prod_26"
+
+[[batches]]
+name = "prod_27"
+
+[[batches]]
+name = "prod_30"
