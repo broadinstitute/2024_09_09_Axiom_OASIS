@@ -21,49 +21,16 @@ That machine-readable receipt binds the exact source and manifest identities, co
 
 No channel stacking, normalization, intensity transformation, cropping, resizing, or biological recalibration is performed.
 
-## Known limitation: this archive is lossy and has not been validated for measurement
+## Known limitation: do not measure from this archive
 
-`jpegxl-d1-e5` is a lossy tier, and no one has checked whether profiles computed from these `.jxl` objects match profiles computed from the source TIFFs *for this dataset*.
-Until that is checked, treat this archive as a storage derivative for browsing, visualization, and retrieval, and use the Cell Painting Gallery TIFFs for any measurement that ends up in a result.
+`jpegxl-d1-e5` is a lossy tier, and no one has checked whether profiles computed from these `.jxl` objects match profiles computed from the source TIFFs for this dataset.
+Use the Cell Painting Gallery TIFFs for anything that ends up in a result, and treat this archive as a storage derivative for browsing, visualization, and retrieval.
 
-The tier itself is not unexamined.
-JUMP-lite, which is where these settings come from, evaluates this exact distance-1.0 tier against a lossless reference on a 855,519-site subset of JUMP: per-cell CellProfiler feature correlations, segmentation IoU and instance AP, and mAP-family retrieval reported as percent change from lossless.
-That is strong prior evidence, but it was measured on JUMP (`cpg0016`) with a different cell line, imager, and intensity distribution, not on Axiom OASIS, and its manuscript is forthcoming so there are no numbers to quote yet.
+The tier is not unexamined: JUMP-lite, where these settings come from, evaluates it against a lossless reference on a large JUMP subset.
+That was measured on JUMP, not on Axiom OASIS.
+Brightfield is the weakest channel here by a wide margin, because transmitted light occupies a narrow intensity band that a perceptual codec has no way to know is load-bearing.
 
-The compression is aggressive.
-The archive is 323 GB from 17.8 TB of source TIFFs, a 55x reduction, and the ratio varies more than twofold across channels:
-
-| channel | DNA | RNA | AGP | ER | Mito | Brightfield |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| ratio | 106x | 71x | 57x | 50x | 49x | 38x |
-
-A spot check of 24 images, all six channels of one field from one plate in each of the four batches, puts that in context.
-Lossless JPEG XL on the same TIFFs achieves only 1.5x to 2.0x, so the archive is 22x to 88x smaller than a lossless encoding of the same pixels.
-Measuring the per-pixel difference against each image's own signal range, taken as the 1st to 99.9th intensity percentile:
-
-| channel | RMSE (% of range) | max error (% of range) |
-| --- | ---: | ---: |
-| DNA | 0.38 | 8.1 |
-| ER | 0.48 | 6.2 |
-| Mito | 0.43 | 8.5 |
-| RNA | 0.67 | 7.9 |
-| AGP | 0.75 | 7.8 |
-| **Brightfield** | **3.02** | **21.7** |
-
-Brightfield is four to eight times worse than every fluorescence channel, consistently across all four batches.
-The likely reason is that transmitted light occupies a narrow band near mid-gray, roughly 2,800 counts wide here, while the fluorescence channels span 8,000 to 15,000 counts.
-JPEG XL's distance parameter targets butteraugli, a perceptual metric, and does not know that a narrow intensity band carries all of the quantitative signal, so it spends a similar absolute error budget on a much smaller range.
-
-This is a description of the archive, not a study.
-It says nothing directly about features or profiles.
-It does say that Brightfield-derived features are where to look first, and that texture, granularity, and radial-distribution features, which depend on exactly the high-frequency content a lossy codec discards first, are more at risk than integrated-intensity features.
-
-The mechanism is documented by the codec's own authors.
-In [libjxl issue #314](https://github.com/libjxl/libjxl/issues/314), on 16-bit grayscale medical images, libjxl maintainers advise against perceptual lossy mode for data viewed through a narrow intensity window, giving the example of a CT scan stored over `[0..4095]` but displayed over `[950..1100]`, where "storing values [0..4095] psychovisually doesn't work".
-Brightfield here is that case.
-The [butteraugli README](https://github.com/google/butteraugli) likewise describes it as "a research tool more than a practical tool", tuned on 8-bit images "roughly corresponding to jpeg qualities 90 to 95", and libjxl's own `cjxl` manpage hedges distance 1.0 to "should be visually lossless" without stating any per-pixel error bound.
-
-Scope and status of the real comparison are tracked in [issue #44](https://github.com/broadinstitute/2024_09_09_Axiom_OASIS/issues/44).
+Measurements, the codec authors' own guidance on this failure mode, and what remains to be checked are in [issue #44](https://github.com/broadinstitute/2024_09_09_Axiom_OASIS/issues/44).
 
 ## Requirements
 
