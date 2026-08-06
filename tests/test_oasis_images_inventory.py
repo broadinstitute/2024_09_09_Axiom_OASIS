@@ -255,6 +255,31 @@ class OasisImageInventoryTest(unittest.TestCase):
                 with self.assertRaisesRegex(InventoryValidationError, expected_error):
                     verify_inventory_artifacts(artifacts.summary_path, contract)
 
+    def test_verifier_accepts_legacy_summary_size_evidence(self) -> None:
+        """Read the four-key summary record produced by the completed archive run."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            index_path = root / "index.parquet"
+            work_dir = root / "metadata"
+            _write_index(index_path)
+            contract = _contract(root, index_path)
+            artifacts = build_inventory(
+                contract,
+                work_dir,
+                index_path=index_path,
+                remote_snapshot=True,
+                s3_client=_S3Client(_complete_remote()),
+            )
+            summary = cast("dict[str, object]", json.loads(artifacts.summary_path.read_text()))
+            evidence = cast("dict[str, dict[str, object]]", summary["artifact_evidence"])
+            evidence["summary"]["size_bytes"] = 5_155
+            artifacts.summary_path.write_text(f"{json.dumps(summary, indent=2, sort_keys=True)}\n")
+
+            verified = verify_inventory_artifacts(artifacts.summary_path, contract)
+            verified_evidence = cast("dict[str, dict[str, object]]", verified["artifact_evidence"])
+
+            self.assertEqual(verified_evidence["summary"]["size_bytes"], 5_155)
+
     def test_existing_exact_snapshot_can_be_attested_without_remote_relisting(self) -> None:
         """Upgrade older exact evidence only after local scope and pin validation."""
         with tempfile.TemporaryDirectory() as temporary_directory:

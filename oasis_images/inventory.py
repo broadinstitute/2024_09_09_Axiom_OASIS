@@ -621,8 +621,12 @@ def _verify_summary_evidence(
 ) -> None:
     """Verify the summary's canonical content digest."""
     record = evidence.get("summary")
-    if not isinstance(record, dict) or set(record) != {"row_count", "sha256", "sha256_scope"}:
+    current_fields = {"row_count", "sha256", "sha256_scope"}
+    allowed_fields = {frozenset(current_fields), frozenset(current_fields | {"size_bytes"})}
+    if not isinstance(record, dict) or set(record) not in allowed_fields:
         _raise_validation("summary evidence fields are invalid")
+    if "size_bytes" in record:
+        _strict_nonnegative_int(record["size_bytes"], "legacy summary size")
     if record["row_count"] is not None or record["sha256_scope"] != _SUMMARY_SHA256_SCOPE:
         _raise_validation("summary evidence scope or row count is invalid")
     expected_sha256 = record["sha256"]
