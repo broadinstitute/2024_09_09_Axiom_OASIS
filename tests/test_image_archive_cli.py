@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 import pytest
 
-from oasis_images import __main__ as cli
+from image_archive import __main__ as cli
 
 
 class OasisImagesCliTest(unittest.TestCase):

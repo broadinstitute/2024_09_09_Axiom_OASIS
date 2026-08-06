@@ -1,5 +1,5 @@
 # ruff: noqa: CPY001, EM101, EM102, TRY003
-"""Command-line interface for the OASIS JPEG XL image archive."""
+"""Command-line interface for the JPEG XL image archive."""
 
 from __future__ import annotations
 
@@ -15,14 +15,14 @@ from .contract import Contract, load_contract
 from .inventory import build_inventory, verify_inventory_artifacts
 from .io import atomic_write_json, ensure_group_directories, exclusive_workflow_lock
 
-DEFAULT_CONTRACT: Final = Path("images/source.toml")
+DEFAULT_CONTRACT: Final = Path("image_archive/axiom/source.toml")
 METADATA_DIRECTORY: Final = "_archive"
 
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="python -m oasis_images",
-        description="Build and verify the local Axiom OASIS JPEG XL archive.",
+        prog="python -m image_archive",
+        description="Build and verify a local JPEG XL image archive from a dataset contract.",
     )
     parser.add_argument(
         "--log-level",

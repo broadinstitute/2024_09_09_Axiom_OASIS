@@ -16,13 +16,13 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import tifffile
 
-from oasis_images.archive import (
+from image_archive.archive import (
     run_archive,
     state_report,
     validate_archive,
 )
-from oasis_images.codec import decode_jxl
-from oasis_images.contract import (
+from image_archive.codec import decode_jxl
+from image_archive.contract import (
     CodecContract,
     Contract,
     DestinationContract,
@@ -30,8 +30,8 @@ from oasis_images.contract import (
     InventoryContract,
     SourceContract,
 )
-from oasis_images.io import atomic_write_bytes, sha256_file
-from oasis_images.state import ArchiveState, StateRecord
+from image_archive.io import atomic_write_bytes, sha256_file
+from image_archive.state import ArchiveState, StateRecord
 
 TEST_SHAPE = (31, 37)
 SOURCE_KEY = "cpg0037-oasis/axiom/images/prod_25/images/plate_00000001/r01c01f01p01-ch1sk1fk1fl1.tiff"
@@ -193,7 +193,7 @@ class OasisImageArchiveTest(unittest.TestCase):
             _write_inventory(inventory, source)
             write_inventory_fixture(rejected, [{"reason": "fixture incomplete row"}])
             contract = _runtime_contract(root, inventory, rejected=rejected)
-            with patch("oasis_images.archive.public_s3_client", return_value=client):
+            with patch("image_archive.archive.public_s3_client", return_value=client):
                 first = run_archive(
                     contract,
                     inventory_path=inventory,
@@ -249,8 +249,8 @@ class OasisImageArchiveTest(unittest.TestCase):
             _write_inventory(inventory, source)
             contract = _runtime_contract(root, inventory)
             with (
-                patch("oasis_images.archive.public_s3_client", return_value=client),
-                patch("oasis_images.archive.atomic_write_bytes", side_effect=OSError("injected write failure")),
+                patch("image_archive.archive.public_s3_client", return_value=client),
+                patch("image_archive.archive.atomic_write_bytes", side_effect=OSError("injected write failure")),
             ):
                 result = run_archive(
                     contract,
@@ -290,8 +290,8 @@ class OasisImageArchiveTest(unittest.TestCase):
             _write_inventory(inventory, source)
             contract = _runtime_contract(root, inventory)
             with (
-                patch("oasis_images.archive.public_s3_client", return_value=client),
-                patch("oasis_images.archive.atomic_write_bytes", side_effect=flaky_write),
+                patch("image_archive.archive.public_s3_client", return_value=client),
+                patch("image_archive.archive.atomic_write_bytes", side_effect=flaky_write),
             ):
                 result = run_archive(
                     contract,
@@ -339,8 +339,8 @@ class OasisImageArchiveTest(unittest.TestCase):
             )
             contract = _runtime_contract(root, inventory, complete_images=2)
             with (
-                patch("oasis_images.archive.public_s3_client", return_value=client),
-                patch("oasis_images.archive.atomic_write_bytes", side_effect=OSError("systemic failure")),
+                patch("image_archive.archive.public_s3_client", return_value=client),
+                patch("image_archive.archive.atomic_write_bytes", side_effect=OSError("systemic failure")),
             ):
                 result = run_archive(
                     contract,
@@ -370,7 +370,7 @@ class OasisImageArchiveTest(unittest.TestCase):
             state_path = root / "metadata" / "state.sqlite3"
             _write_inventory(inventory, source, version_id="fixture-version")
             contract = _runtime_contract(root, inventory)
-            with patch("oasis_images.archive.public_s3_client", return_value=client):
+            with patch("image_archive.archive.public_s3_client", return_value=client):
                 result = run_archive(
                     contract,
                     inventory_path=inventory,
@@ -393,7 +393,7 @@ class OasisImageArchiveTest(unittest.TestCase):
             contract = _runtime_contract(root, inventory)
             wrong_inventory = replace(contract.inventory, manifest_sha256="f" * 64)
             with (
-                patch("oasis_images.archive.public_s3_client") as client_factory,
+                patch("image_archive.archive.public_s3_client") as client_factory,
                 self.assertRaisesRegex(ValueError, "inventory manifest SHA-256 differs"),  # noqa: PT027
             ):
                 run_archive(
@@ -437,7 +437,7 @@ class OasisImageArchiveTest(unittest.TestCase):
             )
             write_inventory_fixture(rejected, [{"reason": "fixture incomplete row"}])
             contract = _runtime_contract(root, inventory, rejected=rejected, complete_images=2)
-            with patch("oasis_images.archive.public_s3_client", return_value=client):
+            with patch("image_archive.archive.public_s3_client", return_value=client):
                 run_archive(
                     contract,
                     inventory_path=inventory,
@@ -492,7 +492,7 @@ class OasisImageArchiveTest(unittest.TestCase):
                 destination=DestinationContract(root, "{batch}/{plate}/{codec_id}/{stem}.jxl"),
             )
 
-            with patch("oasis_images.archive.public_s3_client", return_value=client):
+            with patch("image_archive.archive.public_s3_client", return_value=client):
                 run = run_archive(
                     contract,
                     inventory_path=inventory,

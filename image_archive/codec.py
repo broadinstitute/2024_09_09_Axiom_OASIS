@@ -1,5 +1,5 @@
 # ruff: noqa: CPY001, EM101, EM102, TRY003, TRY301
-"""Strict TIFF decoding and JPEG XL encoding for the OASIS image archive."""
+"""Strict TIFF decoding and JPEG XL encoding for the image archive."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ import tifffile
 if TYPE_CHECKING:
     from numpy.typing import DTypeLike, NDArray
 
-from oasis_images.contract import CodecContract
+from image_archive.contract import CodecContract
 
 IMAGE_DIMENSIONS: Final = 2
 UINT16_BYTES: Final = 2

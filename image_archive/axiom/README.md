@@ -3,7 +3,7 @@
 This workflow builds a storage derivative of the Axiom OASIS TIFF collection.
 The original Cell Painting Gallery TIFFs remain the source of truth.
 
-The tracked contract in `images/source.toml` is the authoritative dataset description.
+The tracked contract in `image_archive/axiom/source.toml` is the authoritative dataset description.
 It pins the image index, expected inventory, source S3 namespace, codec settings, destination layout, batches, and channels without duplicating those values in Python.
 Its channel-number mapping is DNA 1, ER 2, AGP 3, RNA 4, Mito 5, and Brightfield 6.
 The only v1 codec is JPEG XL HQ with distance 1.0 and effort 5, identified as `jpegxl-d1-e5`.
@@ -16,11 +16,46 @@ Each complete source TIFF becomes one standard `.jxl` object at:
   jpegxl-d1-e5/<batch>/images/<plate>/<stem>.jxl
 ```
 
-The completed Spirit v1 run is frozen in `images/run-receipt-2026-08-05.toml`.
+The completed Spirit v1 run is frozen in `image_archive/axiom/run-receipt-2026-08-05.toml`.
 That machine-readable receipt binds the exact source and manifest identities, codec runtime, two conversion phases, a deterministically specified ledger evidence digest and totals, and the external validation report without copying generated image data into Git.
 
 No channel stacking, normalization, intensity transformation, cropping, resizing, or biological recalibration is performed.
-The HQ setting is a declared storage tier, not evidence that downstream biological measurements are unchanged.
+
+## Known limitation: this archive is lossy and has not been validated for measurement
+
+`jpegxl-d1-e5` is a lossy tier.
+Nobody has checked whether morphological profiles computed from these `.jxl` objects match profiles computed from the source TIFFs.
+Until that comparison exists, treat this archive as a storage derivative for browsing, visualization, and retrieval, and use the Cell Painting Gallery TIFFs for any measurement that ends up in a result.
+
+The compression is aggressive.
+The archive is 323 GB from 17.8 TB of source TIFFs, a 55x reduction, and the ratio varies more than twofold across channels:
+
+| channel | DNA | RNA | AGP | ER | Mito | Brightfield |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| ratio | 106x | 71x | 57x | 50x | 49x | 38x |
+
+A spot check of 24 images, all six channels of one field from one plate in each of the four batches, puts that in context.
+Lossless JPEG XL on the same TIFFs achieves only 1.5x to 2.0x, so the archive is 22x to 88x smaller than a lossless encoding of the same pixels.
+Measuring the per-pixel difference against each image's own signal range, taken as the 1st to 99.9th intensity percentile:
+
+| channel | RMSE (% of range) | max error (% of range) |
+| --- | ---: | ---: |
+| DNA | 0.38 | 8.1 |
+| ER | 0.48 | 6.2 |
+| Mito | 0.43 | 8.5 |
+| RNA | 0.67 | 7.9 |
+| AGP | 0.75 | 7.8 |
+| **Brightfield** | **3.02** | **21.7** |
+
+Brightfield is four to eight times worse than every fluorescence channel, consistently across all four batches.
+The likely reason is that transmitted light occupies a narrow band near mid-gray, roughly 2,800 counts wide here, while the fluorescence channels span 8,000 to 15,000 counts.
+JPEG XL's distance parameter targets butteraugli, a perceptual metric, and does not know that a narrow intensity band carries all of the quantitative signal, so it spends a similar absolute error budget on a much smaller range.
+
+This is a description of the archive, not a study.
+It says nothing directly about features or profiles.
+It does say that if anyone checks equivalence, Brightfield-derived features are the place to start, and that texture, granularity, and radial-distribution features, which depend on exactly the high-frequency content a lossy codec discards first, are more at risk than integrated-intensity features.
+
+Scope and status of the real comparison are tracked in [issue #44](https://github.com/broadinstitute/2024_09_09_Axiom_OASIS/issues/44).
 
 ## Requirements
 
@@ -31,7 +66,8 @@ User, group, registry, and exact-path policy remain in the runbook and service c
 
 ## Reuse
 
-For another dataset with the same six-column Axiom index schema, copy `images/source.toml` and change the index identity, S3 namespace, expected counts, batches, channels, codec settings, destination root, and object template.
+The Python package in `image_archive/` is the dataset-agnostic tool; `image_archive/axiom/` is one worked instance of it.
+For another dataset with the same six-column Axiom index schema, create a sibling directory such as `image_archive/<dataset>/`, copy `source.toml` into it, and change the index identity, S3 namespace, expected counts, batches, channels, codec settings, destination root, and object template.
 Run `inventory` to build the canonical manifest, record its inventory and rejected-row SHA-256 values in the contract, and then run `archive`.
 The conversion engine consumes only the canonical manifest columns and the contract, so image dimensions and dataset names are not compiled into the runtime.
 
@@ -40,23 +76,23 @@ The conversion engine consumes only the canonical manifest columns and the contr
 Run the metadata-only preflight first:
 
 ```bash
-direnv exec . pixi run -e images python -m oasis_images inventory \
-  --contract images/source.toml \
+direnv exec . pixi run -e images python -m image_archive inventory \
+  --contract image_archive/axiom/source.toml \
   --remote-snapshot
 ```
 
-The inventory command is the preflight: it verifies `images/source.toml` and the pinned `index.parquet` artifact, checks the expected row, batch, plate, field, channel, complete-URI, and incomplete-row counts, and plans destination keys.
+The inventory command is the preflight: it verifies `image_archive/axiom/source.toml` and the pinned `index.parquet` artifact, checks the expected row, batch, plate, field, channel, complete-URI, and incomplete-row counts, and plans destination keys.
 It paginates the four public S3 batch prefixes without downloading TIFF pixels and records size, ETag, last-modified time, storage class, and version ID where available.
 Missing indexed objects fail the preflight.
 Prefix-extra objects are preserved in a separate report and never added silently to the pinned-index scope.
-The final enriched inventory and rejected-row artifact are SHA-256 pinned in `images/source.toml`, and every generated preflight artifact is attested in the self-verifying summary.
+The final enriched inventory and rejected-row artifact are SHA-256 pinned in `image_archive/axiom/source.toml`, and every generated preflight artifact is attested in the self-verifying summary.
 It must not download any source TIFF or write any JPEG XL object.
 
 After reviewing the preflight report and confirming storage registration, start or resume the archive explicitly:
 
 ```bash
-direnv exec . pixi run -e images python -m oasis_images archive \
-  --contract images/source.toml \
+direnv exec . pixi run -e images python -m image_archive archive \
+  --contract image_archive/axiom/source.toml \
   --workers 64 \
   --max-in-flight 128 \
   --max-attempts 5 \
@@ -81,7 +117,7 @@ After the smoke audit passes, install the tracked user service from the canonica
 ```bash
 mkdir -p ~/.config/systemd/user
 ln -sfn \
-  /work/users/shsingh/GitHub/oasis/2024_09_09_Axiom_OASIS/images/oasis-axiom-jpegxl.service \
+  /work/users/shsingh/GitHub/oasis/2024_09_09_Axiom_OASIS/image_archive/axiom/oasis-axiom-jpegxl.service \
   ~/.config/systemd/user/oasis-axiom-jpegxl.service
 systemctl --user daemon-reload
 systemctl --user enable --now oasis-axiom-jpegxl.service
@@ -95,10 +131,10 @@ The conversion service stops after ledger completion and does not run the whole-
 After conversion has stopped and released the destination lock, inspect durable progress and run the final completeness gate separately:
 
 ```bash
-direnv exec . pixi run -e images python -m oasis_images status \
-  --contract images/source.toml
-direnv exec . pixi run -e images python -m oasis_images validate \
-  --contract images/source.toml \
+direnv exec . pixi run -e images python -m image_archive status \
+  --contract image_archive/axiom/source.toml
+direnv exec . pixi run -e images python -m image_archive validate \
+  --contract image_archive/axiom/source.toml \
   --workers 64 \
   --max-attempts 5
 ```

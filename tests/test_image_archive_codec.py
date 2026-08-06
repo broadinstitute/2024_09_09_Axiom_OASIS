@@ -11,11 +11,11 @@ import imagecodecs
 import numpy as np
 import tifffile
 
-from oasis_images.codec import CodecError, decode_jxl, decode_tiff, encode_jxl, verify_jxl
-from oasis_images.contract import load_contract
+from image_archive.codec import CodecError, decode_jxl, decode_tiff, encode_jxl, verify_jxl
+from image_archive.contract import load_contract
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SOURCE_CONTRACT = REPO_ROOT / "images" / "source.toml"
+SOURCE_CONTRACT = REPO_ROOT / "image_archive" / "axiom" / "source.toml"
 
 
 class OasisImageCodecTest(unittest.TestCase):

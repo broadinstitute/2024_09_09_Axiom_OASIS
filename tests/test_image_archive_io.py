@@ -14,7 +14,7 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from oasis_images.io import exclusive_workflow_lock
+from image_archive.io import exclusive_workflow_lock
 
 
 class ExclusiveWorkflowLockTest(unittest.TestCase):

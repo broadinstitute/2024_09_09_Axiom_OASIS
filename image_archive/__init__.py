@@ -1,5 +1,5 @@
 # ruff: noqa: CPY001
-"""Build and verify the local JPEG XL derivative of the Axiom OASIS images."""
+"""Build and verify a JPEG XL derivative of a TIFF image collection."""
 
 from __future__ import annotations
 

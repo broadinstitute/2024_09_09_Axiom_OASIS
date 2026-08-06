@@ -243,3 +243,13 @@ sha256 = "83ad5f170295039102fe619c6108c7f76c70eede2678baf1b391513b3e4cb457"
 sha256_scope = "file_bytes"
 mtime_utc = "2026-08-05T21:09:07.151573Z"
 mtime_evidence = "filesystem metadata"
+
+# The repository layout changed after this run completed. Every field above is
+# preserved verbatim as the historical record and refers to the pre-rename
+# layout. contract_sha256 is the durable identity and is unaffected by the move.
+[layout_rename]
+old_package = "oasis_images"
+new_package = "image_archive"
+old_contract_path = "images/source.toml"
+new_contract_path = "image_archive/axiom/source.toml"
+note = "Recorded commands, contract_path, and runtime.oasis_images name above are historical and were not rewritten; reproducing them today requires the renamed module and contract path."
