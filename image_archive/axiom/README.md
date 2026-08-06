@@ -35,6 +35,7 @@ Measurements, the codec authors' own guidance on this failure mode, and what rem
 ## Requirements
 
 Run through the dedicated Pixi environment from the repository root.
+That environment is still named `images` even though the directories were renamed: `pixi.lock` keys environments by name, so renaming it rewrites the lockfile and invalidates the `pixi_lock_sha256` pinned in the run receipt.
 Before any image transfer, provision and register the destination according to the host's storage policy.
 The command-line interface requires the configured destination to exist, be writable, contain no symlinked path components, and reside on a non-root mounted filesystem.
 User, group, registry, and exact-path policy remain in the runbook and service configuration rather than the reusable Python code.

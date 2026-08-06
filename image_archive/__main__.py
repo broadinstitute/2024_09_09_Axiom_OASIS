@@ -263,7 +263,14 @@ def _require_destination_storage(destination_root: Path) -> None:
 
 
 def _workflow_lock_path(contract: Contract, work_dir: Path) -> Path:
-    """Use one destination-scoped lock once the canonical archive root exists."""
+    """Use one destination-scoped lock once the canonical archive root exists.
+
+    The ``.oasis-images`` name is deliberately not renamed with the package. A
+    lock only excludes processes that agree on its path, so changing the name
+    would let a checkout of the pre-rename code and a checkout of this code hold
+    different locks and mutate one destination at the same time. Existing
+    archives already carry a lock under this name.
+    """
     if contract.destination.root.exists():
         return contract.destination.root / ".oasis-images.lock"
     return work_dir / ".oasis-images.lock"
