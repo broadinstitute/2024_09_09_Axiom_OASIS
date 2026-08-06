@@ -3,7 +3,8 @@
 This workflow builds a storage derivative of the Axiom OASIS TIFF collection.
 The original Cell Painting Gallery TIFFs remain the source of truth.
 
-The tracked contract in `images/source.toml` pins the Zenodo image index, its byte checksums, the expected inventory, the source S3 namespace, the codec settings, and the destination root.
+The tracked contract in `images/source.toml` is the authoritative dataset description.
+It pins the image index, expected inventory, source S3 namespace, codec settings, destination layout, batches, and channels without duplicating those values in Python.
 Its channel-number mapping is DNA 1, ER 2, AGP 3, RNA 4, Mito 5, and Brightfield 6.
 The only v1 codec is JPEG XL HQ with distance 1.0 and effort 5, identified as `jpegxl-d1-e5`.
 Those settings reproduce the `jpegxl_lossy_hq` tier in JUMP_lite's [`compress_tif.py`](https://github.com/afermg/JUMP_lite/blob/5f0fc9be6135e74cfee0b3504fd20a35a9531a22/src/compress_tif.py), pinned at commit `5f0fc9be6135e74cfee0b3504fd20a35a9531a22` and source-file SHA-256 `9bb6bec0a23a8fb091c1e1990f62690c55b74e34d1a49165b21bbb1aabaa54bf`.
@@ -24,9 +25,15 @@ The HQ setting is a declared storage tier, not evidence that downstream biologic
 ## Requirements
 
 Run through the dedicated Pixi environment from the repository root.
-Before any image transfer, provision the destination on the intended `/work` storage and register the v1 dataset and ownership in the server storage registry.
-Do not redirect this multi-terabyte archive to an unregistered home, scratch, or root filesystem.
-The command-line interface refuses to write unless `/work/datasets` is a distinct mount, the exact destination already exists with setgid `imaging` group access, and `/work/datasets/REGISTRY.yaml` contains `cpg0037-oasis/axiom/images-jxl/v1`.
+Before any image transfer, provision and register the destination according to the host's storage policy.
+The command-line interface requires the configured destination to exist, be writable, contain no symlinked path components, and reside on a non-root mounted filesystem.
+User, group, registry, and exact-path policy remain in the runbook and service configuration rather than the reusable Python code.
+
+## Reuse
+
+For another dataset with the same six-column Axiom index schema, copy `images/source.toml` and change the index identity, S3 namespace, expected counts, batches, channels, codec settings, destination root, and object template.
+Run `inventory` to build the canonical manifest, record its inventory and rejected-row SHA-256 values in the contract, and then run `archive`.
+The conversion engine consumes only the canonical manifest columns and the contract, so image dimensions and dataset names are not compiled into the runtime.
 
 ## Workflow
 
@@ -59,7 +66,7 @@ direnv exec . pixi run -e images python -m oasis_images archive \
 For an engineering smoke run, add `--limit 6`, then audit only the current verified subset with `validate --verified-only`.
 The subset audit exits successfully when every currently verified object passes, while its `complete` field remains false until the full contracted archive is present.
 
-Each selected TIFF is downloaded, checked against its pinned size, ETag, and version ID when available, decoded as one `2160 x 2160` uint16 plane, encoded, decoded again, and promoted through an atomic sibling write.
+Each selected TIFF is downloaded, checked against its pinned size, ETag, and version ID when available, decoded as one 2D uint16 plane, encoded, decoded again at the same shape and dtype, and promoted through an atomic sibling write.
 The ledger stores full source and output SHA-256 evidence and retries failures up to five times in the same invocation.
 The run stops scheduling new images after 32 consecutive failed conversion attempts, leaving untouched rows pending instead of repeating a systemic storage, codec, or network failure across the full inventory.
 Normal resume verifies the exact manifest binding without rereading terabytes of prior outputs.

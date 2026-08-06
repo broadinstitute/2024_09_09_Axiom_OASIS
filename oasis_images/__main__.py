@@ -4,10 +4,8 @@
 from __future__ import annotations
 
 import argparse
-import grp
 import logging
 import os
-import stat
 import sys
 from pathlib import Path
 from typing import Final
@@ -16,15 +14,9 @@ from .archive import DEFAULT_MAX_CONSECUTIVE_FAILURES, print_json, run_archive, 
 from .contract import Contract, load_contract
 from .inventory import build_inventory, verify_inventory_artifacts
 from .io import atomic_write_json, ensure_group_directories, exclusive_workflow_lock
-from .plan import axiom_archive_plan
 
 DEFAULT_CONTRACT: Final = Path("images/source.toml")
 METADATA_DIRECTORY: Final = "_archive"
-DATASET_NAME: Final = "cpg0037-oasis/axiom/images-jxl/v1"
-DATASET_ROOT: Final = Path("/work/datasets")
-DATASET_REGISTRY: Final = DATASET_ROOT / "REGISTRY.yaml"
-EXPECTED_DESTINATION_ROOT: Final = DATASET_ROOT / DATASET_NAME
-REQUIRED_DESTINATION_MODE: Final = stat.S_ISGID | stat.S_IRWXG
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -72,10 +64,7 @@ def _parser() -> argparse.ArgumentParser:
     status = commands.add_parser("status", help="show durable conversion progress")
     _add_contract_and_work_dir(status)
     status.add_argument("--max-attempts", type=int, default=5)
-
-    report = commands.add_parser("report", help="write and show a durable progress report")
-    _add_contract_and_work_dir(report)
-    report.add_argument("--max-attempts", type=int, default=5)
+    status.add_argument("--write", action="store_true", help="also write progress.json")
 
     validate = commands.add_parser("validate", help="hash and decode verified outputs")
     _add_contract_and_work_dir(validate)
@@ -114,9 +103,7 @@ def main(arguments: list[str] | None = None) -> int:  # noqa: PLR0911
         if parsed.command == "archive":
             return _archive_command(parsed, contract, work_dir)
         if parsed.command == "status":
-            return _status_command(parsed, contract, work_dir, write=False)
-        if parsed.command == "report":
-            return _status_command(parsed, contract, work_dir, write=True)
+            return _status_command(parsed, contract, work_dir)
         if parsed.command == "validate":
             return _validate_command(parsed, contract, work_dir)
         parser.error(f"unknown command: {parsed.command}")
@@ -171,7 +158,7 @@ def _archive_command(parsed: argparse.Namespace, contract: Contract, work_dir: P
         _require_remote_preflight(contract, work_dir / "summary.json")
         max_in_flight = parsed.max_in_flight or parsed.workers * 2
         result = run_archive(
-            axiom_archive_plan(contract),
+            contract,
             inventory_path=work_dir / "inventory.parquet",
             state_path=work_dir / "state.sqlite3",
             workers=parsed.workers,
@@ -193,8 +180,6 @@ def _status_command(
     parsed: argparse.Namespace,
     contract: Contract,
     work_dir: Path,
-    *,
-    write: bool,
 ) -> int:
     progress = state_report(work_dir / "state.sqlite3", max_attempts=parsed.max_attempts)
     progress["expected_complete"] = contract.inventory.complete_unique_tiff_uris
@@ -212,7 +197,7 @@ def _status_command(
         and counts["verified"] == contract.inventory.complete_unique_tiff_uris
         and counts["unresolved"] == 0
     )
-    if write:
+    if parsed.write:
         progress_path = work_dir / "progress.json"
         atomic_write_json(progress_path, progress)
         progress["progress_path"] = str(progress_path)
@@ -226,7 +211,7 @@ def _validate_command(parsed: argparse.Namespace, contract: Contract, work_dir: 
         _require_destination_storage(contract.destination.root)
         _require_remote_preflight(contract, work_dir / "summary.json")
         result = validate_archive(
-            axiom_archive_plan(contract),
+            contract,
             inventory_path=work_dir / "inventory.parquet",
             rejected_path=work_dir / "rejected.parquet",
             state_path=work_dir / "state.sqlite3",
@@ -258,81 +243,23 @@ def _require_remote_preflight(contract: Contract, summary_path: Path) -> None:
 
 
 def _require_destination_storage(destination_root: Path) -> None:
-    destination_stat = _require_destination_location(destination_root)
-    _require_dataset_registration()
-    _require_destination_permissions(destination_root, destination_stat)
-
-
-def _require_destination_location(destination_root: Path) -> os.stat_result:
-    """Require the exact archive path to remain on shared dataset storage."""
-    dataset_root = DATASET_ROOT
-    if destination_root != EXPECTED_DESTINATION_ROOT:
-        raise ValueError(f"unexpected archive root: {destination_root}")
-    _require_unsymlinked_destination_path(dataset_root, destination_root)
-    if not dataset_root.is_dir():
-        raise FileNotFoundError(f"shared dataset root is absent: {dataset_root}")
-    if dataset_root.stat().st_dev == dataset_root.parent.stat().st_dev:
-        raise RuntimeError(
-            "/work/datasets is not a distinct mounted filesystem; refusing to write the root disk",
-        )
-    if not destination_root.is_dir():
-        raise FileNotFoundError(
-            f"archive root has not been provisioned and registered: {destination_root}",
-        )
-    resolved_dataset_root = dataset_root.resolve()
-    resolved_destination_root = destination_root.resolve()
-    if not resolved_destination_root.is_relative_to(resolved_dataset_root):
-        raise RuntimeError(
-            f"archive root resolves outside the shared dataset root: {resolved_destination_root}",
-        )
-    if destination_root.stat().st_dev == dataset_root.parent.stat().st_dev:
-        raise RuntimeError(
-            f"archive root is on the /work root filesystem; refusing to write: {destination_root}",
-        )
-    return destination_root.stat()
-
-
-def _require_unsymlinked_destination_path(dataset_root: Path, destination_root: Path) -> None:
-    """Reject symlinks in the canonical archive path below the dataset root."""
-    if dataset_root.is_symlink():
-        raise RuntimeError(f"shared dataset root must not be a symlink: {dataset_root}")
-    current = dataset_root
-    for component in destination_root.relative_to(dataset_root).parts:
+    """Require a pre-created, unsymlinked destination on a non-root mount."""
+    if not destination_root.is_absolute():
+        raise ValueError(f"archive root must be absolute: {destination_root}")
+    current = Path(destination_root.anchor)
+    for component in destination_root.parts[1:]:
         current /= component
         if current.is_symlink():
             raise RuntimeError(f"archive root path contains a symlink: {current}")
-
-
-def _require_dataset_registration() -> None:
-    """Require the canonical dataset name and owner in the shared registry."""
-    if not DATASET_REGISTRY.is_file():
-        raise FileNotFoundError(f"shared dataset registry is absent: {DATASET_REGISTRY}")
-    registered_owner = _registry_owner(DATASET_REGISTRY.read_text(), DATASET_NAME)
-    if registered_owner != "shsingh":
-        raise RuntimeError(
-            f"archive registry entry must name owner 'shsingh': "
-            f"dataset={DATASET_NAME!r}, observed_owner={registered_owner!r}",
-        )
-
-
-def _require_destination_permissions(destination_root: Path, destination_stat: os.stat_result) -> None:
-    """Require a root-owned, setgid, group-writable archive root."""
-    try:
-        destination_group = grp.getgrgid(destination_stat.st_gid).gr_name
-    except KeyError as error:
-        raise RuntimeError(f"archive root has unknown group id {destination_stat.st_gid}") from error
-    destination_mode = stat.S_IMODE(destination_stat.st_mode)
-    if (
-        destination_stat.st_uid != 0
-        or destination_group != "imaging"
-        or destination_mode & REQUIRED_DESTINATION_MODE != REQUIRED_DESTINATION_MODE
-    ):
-        raise PermissionError(
-            "archive root must be owned by root:imaging with setgid group access: "
-            f"uid={destination_stat.st_uid}, group={destination_group!r}, mode={destination_mode:o}",
-        )
+    if not destination_root.is_dir():
+        raise FileNotFoundError(f"archive root must be provisioned before use: {destination_root}")
     if not os.access(destination_root, os.W_OK | os.X_OK):
         raise PermissionError(f"archive root is not writable: {destination_root}")
+    mount = destination_root
+    while mount != mount.parent and not mount.is_mount():
+        mount = mount.parent
+    if mount == Path(mount.anchor):
+        raise RuntimeError(f"archive root is on the root filesystem: {destination_root}")
 
 
 def _workflow_lock_path(contract: Contract, work_dir: Path) -> Path:
@@ -345,17 +272,6 @@ def _workflow_lock_path(contract: Contract, work_dir: Path) -> Path:
 def _default_workers() -> int:
     cpu_count = os.cpu_count() or 4
     return max(1, min(32, cpu_count // 4))
-
-
-def _registry_owner(registry: str, dataset_name: str) -> str | None:
-    current_name: str | None = None
-    for raw_line in registry.splitlines():
-        line = raw_line.strip().removeprefix("- ")
-        if line.startswith("name:"):
-            current_name = line.removeprefix("name:").strip().strip("'\"")
-        elif current_name == dataset_name and line.startswith("owner:"):
-            return line.removeprefix("owner:").strip().strip("'\"") or None
-    return None
 
 
 if __name__ == "__main__":

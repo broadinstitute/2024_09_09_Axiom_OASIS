@@ -12,27 +12,25 @@ from typing import cast
 from unittest.mock import patch
 
 import numpy as np
+import pyarrow as pa
+import pyarrow.parquet as pq
 import tifffile
 
 from oasis_images.archive import (
-    iter_manifest_identities,
     run_archive,
     state_report,
     validate_archive,
-    write_inventory_fixture,
 )
-from oasis_images.codec import decode_jxl, encode_jxl
+from oasis_images.codec import decode_jxl
 from oasis_images.contract import (
     CodecContract,
     Contract,
     DestinationContract,
-    FrozenDict,
     IndexContract,
     InventoryContract,
     SourceContract,
 )
-from oasis_images.io import atomic_write_bytes, sha256_bytes, sha256_file
-from oasis_images.plan import ArchivePlan, axiom_archive_plan
+from oasis_images.io import atomic_write_bytes, sha256_file
 from oasis_images.state import ArchiveState, StateRecord
 
 TEST_SHAPE = (31, 37)
@@ -119,28 +117,31 @@ def _contract(
             lossless=False,
             distance=1.0,
             effort=5,
+            reference_repository="https://example.invalid/reference",
+            reference_commit="0" * 40,
+            reference_path="codec.py",
+            reference_sha256="0" * 64,
+            reference_tier="fixture",
         ),
         destination=DestinationContract(root, "{codec_id}/{batch}/images/{plate}/{stem}.jxl"),
         batches=("prod_25",),
-        channels=FrozenDict({"DNA": 1}),
+        channels={"DNA": 1},
     )
 
 
-def _plan(
+def _runtime_contract(
     root: Path,
     inventory: Path,
     *,
     rejected: Path | None = None,
     complete_images: int = 1,
-    image_shape: tuple[int, int] = TEST_SHAPE,
-) -> ArchivePlan:
-    contract = _contract(
+) -> Contract:
+    return _contract(
         root,
         manifest_sha256=sha256_file(inventory),
         rejected_sha256=sha256_file(rejected) if rejected is not None else "0" * 64,
         complete_images=complete_images,
     )
-    return replace(axiom_archive_plan(contract), image_shape=image_shape)
 
 
 def _tiff_bytes(shape: tuple[int, int] = TEST_SHAPE) -> bytes:
@@ -148,10 +149,6 @@ def _tiff_bytes(shape: tuple[int, int] = TEST_SHAPE) -> bytes:
     stream = io.BytesIO()
     tifffile.imwrite(stream, array)
     return stream.getvalue()
-
-
-def _accept_row(_source_key: str, _source_uri: str, _destination_relative: str) -> None:
-    return None
 
 
 def _write_inventory(
@@ -175,6 +172,12 @@ def _write_inventory(
     )
 
 
+def write_inventory_fixture(path: Path, records: list[dict[str, object]]) -> None:
+    """Write a tiny Parquet fixture without exposing test helpers in production."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    pq.write_table(pa.Table.from_pylist(records), path)
+
+
 class OasisImageArchiveTest(unittest.TestCase):
     """Exercise conversion, durable evidence, corruption recovery, and failure state."""
 
@@ -189,10 +192,10 @@ class OasisImageArchiveTest(unittest.TestCase):
             state_path = root / "metadata" / "state.sqlite3"
             _write_inventory(inventory, source)
             write_inventory_fixture(rejected, [{"reason": "fixture incomplete row"}])
-            plan = _plan(root, inventory, rejected=rejected)
+            contract = _runtime_contract(root, inventory, rejected=rejected)
             with patch("oasis_images.archive.public_s3_client", return_value=client):
                 first = run_archive(
-                    plan,
+                    contract,
                     inventory_path=inventory,
                     state_path=state_path,
                     workers=1,
@@ -201,7 +204,7 @@ class OasisImageArchiveTest(unittest.TestCase):
                 output = root / DESTINATION_RELATIVE
                 output.write_bytes(b"corrupt")
                 second = run_archive(
-                    plan,
+                    contract,
                     inventory_path=inventory,
                     state_path=state_path,
                     workers=1,
@@ -209,7 +212,7 @@ class OasisImageArchiveTest(unittest.TestCase):
                     audit_verified=True,
                 )
                 validation = validate_archive(
-                    plan,
+                    contract,
                     inventory_path=inventory,
                     rejected_path=rejected,
                     state_path=state_path,
@@ -244,13 +247,13 @@ class OasisImageArchiveTest(unittest.TestCase):
             inventory = root / "metadata" / "inventory.parquet"
             state_path = root / "metadata" / "state.sqlite3"
             _write_inventory(inventory, source)
-            plan = _plan(root, inventory)
+            contract = _runtime_contract(root, inventory)
             with (
                 patch("oasis_images.archive.public_s3_client", return_value=client),
                 patch("oasis_images.archive.atomic_write_bytes", side_effect=OSError("injected write failure")),
             ):
                 result = run_archive(
-                    plan,
+                    contract,
                     inventory_path=inventory,
                     state_path=state_path,
                     workers=1,
@@ -285,13 +288,13 @@ class OasisImageArchiveTest(unittest.TestCase):
             inventory = root / "metadata" / "inventory.parquet"
             state_path = root / "metadata" / "state.sqlite3"
             _write_inventory(inventory, source)
-            plan = _plan(root, inventory)
+            contract = _runtime_contract(root, inventory)
             with (
                 patch("oasis_images.archive.public_s3_client", return_value=client),
                 patch("oasis_images.archive.atomic_write_bytes", side_effect=flaky_write),
             ):
                 result = run_archive(
-                    plan,
+                    contract,
                     inventory_path=inventory,
                     state_path=state_path,
                     workers=1,
@@ -334,13 +337,13 @@ class OasisImageArchiveTest(unittest.TestCase):
                     },
                 ],
             )
-            plan = _plan(root, inventory, complete_images=2)
+            contract = _runtime_contract(root, inventory, complete_images=2)
             with (
                 patch("oasis_images.archive.public_s3_client", return_value=client),
                 patch("oasis_images.archive.atomic_write_bytes", side_effect=OSError("systemic failure")),
             ):
                 result = run_archive(
-                    plan,
+                    contract,
                     inventory_path=inventory,
                     state_path=state_path,
                     workers=1,
@@ -366,10 +369,10 @@ class OasisImageArchiveTest(unittest.TestCase):
             inventory = root / "metadata" / "inventory.parquet"
             state_path = root / "metadata" / "state.sqlite3"
             _write_inventory(inventory, source, version_id="fixture-version")
-            plan = _plan(root, inventory)
+            contract = _runtime_contract(root, inventory)
             with patch("oasis_images.archive.public_s3_client", return_value=client):
                 result = run_archive(
-                    plan,
+                    contract,
                     inventory_path=inventory,
                     state_path=state_path,
                     workers=1,
@@ -387,12 +390,14 @@ class OasisImageArchiveTest(unittest.TestCase):
             inventory = root / "metadata" / "inventory.parquet"
             state_path = root / "metadata" / "state.sqlite3"
             _write_inventory(inventory, source)
+            contract = _runtime_contract(root, inventory)
+            wrong_inventory = replace(contract.inventory, manifest_sha256="f" * 64)
             with (
                 patch("oasis_images.archive.public_s3_client") as client_factory,
                 self.assertRaisesRegex(ValueError, "inventory manifest SHA-256 differs"),  # noqa: PT027
             ):
                 run_archive(
-                    replace(_plan(root, inventory), manifest_sha256="f" * 64),
+                    replace(contract, inventory=wrong_inventory),
                     inventory_path=inventory,
                     state_path=state_path,
                     workers=1,
@@ -431,10 +436,10 @@ class OasisImageArchiveTest(unittest.TestCase):
                 ],
             )
             write_inventory_fixture(rejected, [{"reason": "fixture incomplete row"}])
-            plan = _plan(root, inventory, rejected=rejected, complete_images=2)
+            contract = _runtime_contract(root, inventory, rejected=rejected, complete_images=2)
             with patch("oasis_images.archive.public_s3_client", return_value=client):
                 run_archive(
-                    plan,
+                    contract,
                     inventory_path=inventory,
                     state_path=state_path,
                     workers=1,
@@ -442,7 +447,7 @@ class OasisImageArchiveTest(unittest.TestCase):
                     limit=1,
                 )
                 validation = validate_archive(
-                    plan,
+                    contract,
                     inventory_path=inventory,
                     rejected_path=rejected,
                     state_path=state_path,
@@ -455,10 +460,10 @@ class OasisImageArchiveTest(unittest.TestCase):
             self.assertEqual(validation.checked, 1)
             self.assertEqual(validation.state_counts["pending"], 1)
 
-    def test_canonical_manifest_runs_without_axiom_names_or_image_shape(self) -> None:
-        """Keep dataset knowledge in a small plan outside the conversion loop."""
+    def test_contract_drives_a_different_source_prefix_layout_and_image_shape(self) -> None:
+        """Run the same manifest-driven engine with a different dataset description."""
         shape = (9, 13)
-        source_key = "portable/raw/acq-7/frame.alpha.tif"
+        source_key = "portable/raw/acq-7/frame.alpha.tiff"
         destination_relative = "group-x/asset.alpha.jxl"
         source = _tiff_bytes(shape)
         client = _S3Client(source, bucket="fixture-bucket", key=source_key)
@@ -480,29 +485,23 @@ class OasisImageArchiveTest(unittest.TestCase):
                 ],
             )
             write_inventory_fixture(rejected, [{"reason": "fixture rejected row"}])
-            plan = ArchivePlan(
+            base = _runtime_contract(root, inventory, rejected=rejected)
+            contract = replace(
+                base,
                 source=SourceContract(bucket="fixture-bucket", prefix="portable/raw", anonymous=True),
-                destination_root=root,
-                codec=_contract(root).codec,
-                manifest_sha256=sha256_file(inventory),
-                manifest_rows=1,
-                rejected_sha256=sha256_file(rejected),
-                rejected_rows=1,
-                image_shape=shape,
-                image_dtype="uint16",
-                validate_row=_accept_row,
+                destination=DestinationContract(root, "{batch}/{plate}/{codec_id}/{stem}.jxl"),
             )
 
             with patch("oasis_images.archive.public_s3_client", return_value=client):
                 run = run_archive(
-                    plan,
+                    contract,
                     inventory_path=inventory,
                     state_path=state_path,
                     workers=1,
                     max_in_flight=1,
                 )
                 validation = validate_archive(
-                    plan,
+                    contract,
                     inventory_path=inventory,
                     rejected_path=rejected,
                     state_path=state_path,
@@ -514,52 +513,6 @@ class OasisImageArchiveTest(unittest.TestCase):
             self.assertTrue(validation.complete)
             self.assertEqual(tuple(decode_jxl(output.read_bytes()).shape), shape)
             self.assertEqual(client.calls, 1)
-
-    def test_validation_rejects_a_verified_noncontract_image_shape(self) -> None:
-        """Do not let internally consistent small JXL evidence satisfy the archive contract."""
-        source = _tiff_bytes()
-        image = np.arange(TEST_SHAPE[0] * TEST_SHAPE[1], dtype=np.uint16).reshape(TEST_SHAPE)
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            root = Path(temporary_directory)
-            inventory = root / "metadata" / "inventory.parquet"
-            rejected = root / "metadata" / "rejected.parquet"
-            state_path = root / "metadata" / "state.sqlite3"
-            _write_inventory(inventory, source)
-            write_inventory_fixture(rejected, [{"reason": "fixture incomplete row"}])
-            plan = _plan(root, inventory, rejected=rejected, image_shape=(2160, 2160))
-            encoded = encode_jxl(image, plan.codec)
-            output = root / DESTINATION_RELATIVE
-            atomic_write_bytes(output, encoded)
-
-            with ArchiveState(state_path) as state:
-                state.initialize(
-                    iter_manifest_identities(inventory, plan),
-                    artifact_sha256=plan.manifest_sha256,
-                    artifact_record_count=1,
-                )
-                state.mark_running(SOURCE_KEY)
-                state.mark_verified(
-                    SOURCE_KEY,
-                    source_sha256=sha256_bytes(source),
-                    output_sha256=sha256_bytes(encoded),
-                    source_bytes=len(source),
-                    output_bytes=len(encoded),
-                    shape=TEST_SHAPE,
-                    dtype="uint16",
-                )
-
-            validation = validate_archive(
-                plan,
-                inventory_path=inventory,
-                rejected_path=rejected,
-                state_path=state_path,
-                workers=1,
-            )
-
-            self.assertFalse(validation.complete)
-            self.assertFalse(validation.audit_passed)
-            self.assertEqual(validation.invalid, 1)
-            self.assertIn("contracted decoded shape", validation.failures[0]["reason"])
 
 
 if __name__ == "__main__":

@@ -52,11 +52,12 @@ class OasisImageCodecTest(unittest.TestCase):
         self.assertEqual(encoded, reference)
 
     def test_tiff_decoder_rejects_wrong_shape_dtype_and_page_count(self) -> None:
-        """Accept only one 2160 by 2160 uint16 plane unless tests override shape."""
+        """Accept any 2D shape while rejecting wrong expectations, dtype, or page count."""
         source = np.arange(7 * 11, dtype=np.uint16).reshape(7, 11)
         source_shape = (int(source.shape[0]), int(source.shape[1]))
+        self.assertEqual(tuple(decode_tiff(self._tiff_bytes(source)).shape), source_shape)
         with self.assertRaises(CodecError):
-            decode_tiff(self._tiff_bytes(source))
+            decode_tiff(self._tiff_bytes(source), expected_shape=(7, 12))
         with self.assertRaises(CodecError):
             decode_tiff(self._tiff_bytes(source.astype(np.uint8)), expected_shape=source_shape)
 

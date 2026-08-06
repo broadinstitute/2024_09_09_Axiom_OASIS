@@ -260,16 +260,6 @@ def _canonical_summary_payload(summary: Mapping[str, object]) -> bytes:
     return canonical.encode()
 
 
-def _serialized_summary_size(summary: Mapping[str, object]) -> int:
-    """Return the exact byte size emitted by atomic_write_json."""
-    try:
-        payload = json.dumps(summary, indent=2, sort_keys=True, allow_nan=False)
-    except (TypeError, ValueError) as error:
-        message = f"summary cannot be serialized: {error}"
-        raise InventoryValidationError(message) from error
-    return len(f"{payload}\n".encode())
-
-
 def _strict_nonnegative_int(value: object, label: str) -> int:
     """Return a JSON integer while rejecting booleans and invalid counts."""
     if isinstance(value, bool) or not isinstance(value, int) or value < 0:
@@ -363,18 +353,7 @@ def _write_summary_with_evidence(
         "row_count": None,
         "sha256": hashlib.sha256(_canonical_summary_payload(summary)).hexdigest(),
         "sha256_scope": _SUMMARY_SHA256_SCOPE,
-        "size_bytes": 0,
     }
-    summary_evidence = evidence["summary"]
-    if not isinstance(summary_evidence, dict):
-        _raise_validation("internal summary evidence is not a dictionary")
-    for _ in range(4):
-        size = _serialized_summary_size(summary)
-        if summary_evidence["size_bytes"] == size:
-            break
-        summary_evidence["size_bytes"] = size
-    else:
-        _raise_validation("summary byte-size evidence did not converge")
     atomic_write_json(summary_path, summary)
 
 
@@ -636,22 +615,19 @@ def _expected_artifact_rows(summary: Mapping[str, object]) -> tuple[dict[str, in
 
 
 def _verify_summary_evidence(
-    summary_path: Path,
+    _summary_path: Path,
     summary: Mapping[str, object],
     evidence: Mapping[str, object],
 ) -> None:
-    """Verify the summary's size and canonical content digest."""
-    expected_size, expected_sha256 = _validate_evidence_record(
-        evidence.get("summary"),
-        label="summary",
-        expected_scope=_SUMMARY_SHA256_SCOPE,
-        expected_rows=None,
-    )
-    actual_size = summary_path.stat().st_size
-    if actual_size != expected_size:
-        _raise_validation(
-            f"summary artifact size mismatch: observed={actual_size}, expected={expected_size}",
-        )
+    """Verify the summary's canonical content digest."""
+    record = evidence.get("summary")
+    if not isinstance(record, dict) or set(record) != {"row_count", "sha256", "sha256_scope"}:
+        _raise_validation("summary evidence fields are invalid")
+    if record["row_count"] is not None or record["sha256_scope"] != _SUMMARY_SHA256_SCOPE:
+        _raise_validation("summary evidence scope or row count is invalid")
+    expected_sha256 = record["sha256"]
+    if not isinstance(expected_sha256, str) or re.fullmatch(r"[0-9a-f]{64}", expected_sha256) is None:
+        _raise_validation(f"invalid summary SHA-256: {expected_sha256!r}")
     actual_sha256 = hashlib.sha256(_canonical_summary_payload(summary)).hexdigest()
     if actual_sha256 != expected_sha256:
         _raise_validation(
@@ -885,7 +861,7 @@ def _plan_complete_rows(contract: Contract, complete: pl.DataFrame) -> pl.DataFr
     )
 
     channel_number = pl.col("Channel").replace_strict(
-        contract.channels,
+        dict(contract.channels),
         return_dtype=pl.UInt8,
     )
     expected_stem = pl.concat_str(

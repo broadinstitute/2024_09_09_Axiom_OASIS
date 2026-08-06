@@ -1,5 +1,5 @@
-# ruff: noqa: CPY001, PT009, SLF001
-"""Focused tests for archive CLI storage-policy parsing."""
+# ruff: noqa: CPY001, SLF001
+"""Focused tests for the generic destination safety check."""
 
 from __future__ import annotations
 
@@ -11,59 +11,41 @@ from unittest.mock import patch
 import pytest
 
 from oasis_images import __main__ as cli
-from oasis_images.__main__ import _registry_owner
 
 
 class OasisImagesCliTest(unittest.TestCase):
-    """Keep the dataset registration gate scoped to the exact entry."""
+    """Reject wrong-filesystem targets without encoding site policy."""
 
-    def test_registry_owner_is_read_from_the_matching_dataset(self) -> None:
-        """Do not accept an owner attached to a different registry entry."""
-        registry = """datasets:
-  - name: unrelated
-    owner: shsingh
-  - name: "cpg0037-oasis/axiom/images-jxl/v1"
-    owner: "archive-owner"
-"""
+    def test_destination_storage_rejects_a_symlinked_path(self) -> None:
+        """Reject a destination reached through any symlink."""
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            real = root / "real"
+            real.mkdir()
+            destination = root / "archive"
+            destination.symlink_to(real, target_is_directory=True)
 
-        self.assertEqual(
-            _registry_owner(registry, "cpg0037-oasis/axiom/images-jxl/v1"),
-            "archive-owner",
-        )
-        self.assertIsNone(_registry_owner(registry, "absent"))
+            with pytest.raises(RuntimeError, match="contains a symlink"):
+                cli._require_destination_storage(destination)
 
-    def test_destination_storage_rejects_symlinked_dataset_root(self) -> None:
-        """The canonical shared dataset path cannot redirect through a symlink."""
-        with TemporaryDirectory() as temporary_directory:
-            temporary_root = Path(temporary_directory)
-            real_dataset_root = temporary_root / "real-datasets"
-            real_dataset_root.mkdir()
-            dataset_root = temporary_root / "datasets"
-            dataset_root.symlink_to(real_dataset_root, target_is_directory=True)
-            destination_root = dataset_root / cli.DATASET_NAME
+    def test_destination_storage_rejects_the_root_filesystem(self) -> None:
+        """Refuse a multi-terabyte run on the root filesystem."""
+        with TemporaryDirectory() as directory:
+            destination = Path(directory) / "archive"
+            destination.mkdir()
 
-            with (
-                patch.object(cli, "DATASET_ROOT", dataset_root),
-                patch.object(cli, "DATASET_REGISTRY", dataset_root / "REGISTRY.yaml"),
-                patch.object(cli, "EXPECTED_DESTINATION_ROOT", destination_root),
-                pytest.raises(RuntimeError, match="dataset root must not be a symlink"),
-            ):
-                cli._require_destination_storage(destination_root)
+            with pytest.raises(RuntimeError, match="root filesystem"):
+                cli._require_destination_storage(destination)
 
-    def test_destination_storage_rejects_root_filesystem_device(self) -> None:
-        """A same-device dataset directory must not consume the root filesystem."""
-        with TemporaryDirectory() as temporary_directory:
-            dataset_root = Path(temporary_directory) / "datasets"
-            dataset_root.mkdir()
-            destination_root = dataset_root / cli.DATASET_NAME
+    def test_destination_storage_accepts_a_precreated_nonroot_mount(self) -> None:
+        """Accept an ordinary writable path on a non-root mount."""
+        with TemporaryDirectory() as directory:
+            mount = Path(directory)
+            destination = mount / "archive"
+            destination.mkdir()
 
-            with (
-                patch.object(cli, "DATASET_ROOT", dataset_root),
-                patch.object(cli, "DATASET_REGISTRY", dataset_root / "REGISTRY.yaml"),
-                patch.object(cli, "EXPECTED_DESTINATION_ROOT", destination_root),
-                pytest.raises(RuntimeError, match="not a distinct mounted filesystem"),
-            ):
-                cli._require_destination_storage(destination_root)
+            with patch.object(Path, "is_mount", autospec=True, side_effect=lambda path: path == mount):
+                cli._require_destination_storage(destination)
 
 
 if __name__ == "__main__":

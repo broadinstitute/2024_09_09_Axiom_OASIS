@@ -13,17 +13,8 @@ import tifffile
 if TYPE_CHECKING:
     from numpy.typing import DTypeLike, NDArray
 
-from oasis_images.contract import (
-    CODEC_DISTANCE,
-    CODEC_EFFORT,
-    CODEC_ID,
-    CODEC_LOSSLESS,
-    CODEC_NAME,
-    CODEC_PROFILE,
-    CodecContract,
-)
+from oasis_images.contract import CodecContract
 
-DEFAULT_IMAGE_SHAPE: Final = (2160, 2160)
 IMAGE_DIMENSIONS: Final = 2
 UINT16_BYTES: Final = 2
 
@@ -63,17 +54,18 @@ def _payload(data: bytes, label: str) -> bytes:
 def _codec(codec: CodecContract) -> CodecContract:
     if not isinstance(codec, CodecContract):
         raise CodecError("codec must be a CodecContract")
-    actual = (codec.id, codec.name, codec.profile, codec.lossless, codec.distance, codec.effort)
-    expected = (CODEC_ID, CODEC_NAME, CODEC_PROFILE, CODEC_LOSSLESS, CODEC_DISTANCE, CODEC_EFFORT)
-    if actual != expected:
-        raise CodecError(f"codec differs from the pinned HQ tier: {actual!r}")
+    if codec.name != "jpegxl":
+        raise CodecError("invalid JPEG XL codec settings")
     return codec
 
 
-def decode_tiff(data: bytes, expected_shape: tuple[int, int] = DEFAULT_IMAGE_SHAPE) -> NDArray[np.uint16]:
-    """Decode exactly one 2D uint16 TIFF plane with the expected shape."""
+def decode_tiff(
+    data: bytes,
+    expected_shape: tuple[int, int] | None = None,
+) -> NDArray[np.uint16]:
+    """Decode exactly one 2D uint16 TIFF plane."""
     payload = _payload(data, "TIFF")
-    shape = _shape(expected_shape)
+    shape = _shape(expected_shape) if expected_shape is not None else None
     try:
         with tifffile.TiffFile(io.BytesIO(payload)) as tiff:
             if len(tiff.pages) != 1:
@@ -144,7 +136,6 @@ def verify_jxl(
 
 
 __all__ = [
-    "DEFAULT_IMAGE_SHAPE",
     "CodecError",
     "decode_jxl",
     "decode_tiff",

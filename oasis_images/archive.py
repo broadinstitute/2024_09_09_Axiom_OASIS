@@ -13,10 +13,10 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 from urllib.parse import urlsplit
 
-import pyarrow as pa
 import pyarrow.parquet as pq
 
 from .codec import decode_tiff, encode_jxl, verify_jxl
+from .contract import Contract
 from .io import (
     atomic_write_bytes,
     atomic_write_json,
@@ -25,13 +25,13 @@ from .io import (
     sha256_bytes,
     sha256_file,
 )
-from .plan import ArchivePlan
 from .s3 import S3Client, download_object, public_s3_client
 from .state import ArchiveState, ManifestIdentity, StateRecord
 
 LOGGER = logging.getLogger(__name__)
 DEFAULT_MAX_CONSECUTIVE_FAILURES = 32
 _MAX_REPORTED_FAILURES = 100
+_IMAGE_DIMENSIONS = 2
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,7 +91,7 @@ class _QueueProgress:
 
 
 def run_archive(  # noqa: PLR0913
-    plan: ArchivePlan,
+    contract: Contract,
     *,
     inventory_path: Path,
     state_path: Path,
@@ -117,20 +117,20 @@ def run_archive(  # noqa: PLR0913
     manifest_rows = _parquet_rows(inventory_path)
     manifest_sha256 = _require_artifact_pin(
         inventory_path,
-        plan.manifest_sha256,
+        contract.inventory.manifest_sha256,
         "inventory manifest",
     )
-    if manifest_rows != plan.manifest_rows:
+    expected_rows = contract.inventory.complete_unique_tiff_uris
+    if manifest_rows != expected_rows:
         raise ValueError(
-            "inventory row count differs from the contract: "
-            f"actual={manifest_rows}, expected={plan.manifest_rows}",
+            f"inventory row count differs from the contract: actual={manifest_rows}, expected={expected_rows}",
         )
     client = public_s3_client(max_pool_connections=max_in_flight)
     with ArchiveState(state_path) as state:
         binding = state.manifest_binding()
         if binding is None or binding.artifact_sha256 is None:
             initialized = state.initialize(
-                iter_manifest_identities(inventory_path, plan),
+                iter_manifest_identities(inventory_path, contract),
                 artifact_sha256=manifest_sha256,
                 artifact_record_count=manifest_rows,
             )
@@ -143,21 +143,19 @@ def run_archive(  # noqa: PLR0913
             state.require_manifest_binding(manifest_sha256, manifest_rows)
             LOGGER.info("state manifest binding verified without row replay")
         initialized_counts = state.counts(max_attempts=max_attempts)
-        if initialized_counts["total"] != plan.manifest_rows:
+        if initialized_counts["total"] != expected_rows:
             raise ValueError(
                 "archive state row count differs from the contracted complete inventory: "
                 f"state={initialized_counts['total']}, "
-                f"expected={plan.manifest_rows}",
+                f"expected={expected_rows}",
             )
         recovered = state.recover_running()
-        requeued = (
-            audit_verified_outputs(state, plan=plan, workers=workers) if audit_verified else 0
-        )
+        requeued = audit_verified_outputs(state, contract=contract, workers=workers) if audit_verified else 0
         pending = state.pending(limit=limit, max_attempts=max_attempts)
         selected, retried, verified, failed, failure_attempts, failure_limit_reached = _run_queue(
             state,
             pending,
-            plan=plan,
+            contract=contract,
             client=client,
             workers=workers,
             max_in_flight=max_in_flight,
@@ -178,7 +176,7 @@ def run_archive(  # noqa: PLR0913
     )
 
 
-def iter_manifest_identities(inventory_path: Path, plan: ArchivePlan) -> Iterator[ManifestIdentity]:
+def iter_manifest_identities(inventory_path: Path, contract: Contract) -> Iterator[ManifestIdentity]:
     """Stream immutable state identities from the deterministic inventory."""
     parquet = pq.ParquetFile(inventory_path)
     names = set(parquet.schema_arrow.names)
@@ -198,7 +196,7 @@ def iter_manifest_identities(inventory_path: Path, plan: ArchivePlan) -> Iterato
             key = str(source_key)
             source_uri = str(values["source_uri"][position])
             destination_relative = str(values["destination_relative"][position])
-            _validate_source_destination(plan, key, source_uri, destination_relative)
+            _validate_source_destination(contract, key, source_uri, destination_relative)
             expected_size = _optional_int(values["source_size"][position])
             expected_etag = _optional_str(values["etag"][position])
             expected_version_id = (
@@ -219,7 +217,7 @@ def iter_manifest_identities(inventory_path: Path, plan: ArchivePlan) -> Iterato
 def audit_verified_outputs(
     state: ArchiveState,
     *,
-    plan: ArchivePlan,
+    contract: Contract,
     workers: int,
 ) -> int:
     """Requeue verified rows unless the exact previously decoded bytes remain."""
@@ -235,7 +233,7 @@ def audit_verified_outputs(
                 except StopIteration:
                     exhausted = True
                     break
-                future = executor.submit(_audit_verified_record, record, plan)
+                future = executor.submit(_audit_verified_record, record, contract)
                 futures[future] = record
             if not futures:
                 continue
@@ -252,7 +250,7 @@ def audit_verified_outputs(
 
 
 def validate_archive(  # noqa: PLR0913
-    plan: ArchivePlan,
+    contract: Contract,
     *,
     inventory_path: Path,
     rejected_path: Path,
@@ -268,12 +266,12 @@ def validate_archive(  # noqa: PLR0913
     rejected_rows = _parquet_rows(rejected_path)
     manifest_sha256 = _require_artifact_pin(
         inventory_path,
-        plan.manifest_sha256,
+        contract.inventory.manifest_sha256,
         "inventory manifest",
     )
     _require_artifact_pin(
         rejected_path,
-        plan.rejected_sha256,
+        contract.inventory.rejected_sha256,
         "rejected-row artifact",
     )
     failures: list[dict[str, str]] = []
@@ -281,7 +279,7 @@ def validate_archive(  # noqa: PLR0913
     invalid = 0
     with ArchiveState(state_path) as state:
         state.validate_manifest(
-            iter_manifest_identities(inventory_path, plan),
+            iter_manifest_identities(inventory_path, contract),
             artifact_sha256=manifest_sha256,
             artifact_record_count=inventory_rows,
         )
@@ -296,7 +294,7 @@ def validate_archive(  # noqa: PLR0913
                     except StopIteration:
                         exhausted = True
                         break
-                    future = executor.submit(_validate_verified_record, record, plan)
+                    future = executor.submit(_validate_verified_record, record, contract)
                     futures[future] = record
                 if not futures:
                     continue
@@ -312,12 +310,12 @@ def validate_archive(  # noqa: PLR0913
                         failures.append({"source_key": record.source_key, "reason": reason})
         counts = state.counts(max_attempts=max_attempts)
 
-    expected = plan.manifest_rows
+    expected = contract.inventory.complete_unique_tiff_uris
     complete = (
         invalid == 0
         and checked == expected
         and inventory_rows == expected
-        and rejected_rows == plan.rejected_rows
+        and rejected_rows == contract.inventory.incomplete_rows
         and counts["verified"] == expected
         and counts["unresolved"] == 0
     )
@@ -325,7 +323,7 @@ def validate_archive(  # noqa: PLR0913
         checked > 0
         and invalid == 0
         and inventory_rows == expected
-        and rejected_rows == plan.rejected_rows
+        and rejected_rows == contract.inventory.incomplete_rows
         and counts["total"] == expected
         and checked == counts["verified"]
     )
@@ -398,7 +396,7 @@ def _run_queue(  # noqa: PLR0913
     state: ArchiveState,
     pending: Iterator[StateRecord],
     *,
-    plan: ArchivePlan,
+    contract: Contract,
     client: S3Client,
     workers: int,
     max_in_flight: int,
@@ -419,7 +417,7 @@ def _run_queue(  # noqa: PLR0913
                 future = executor.submit(
                     _convert_one,
                     running,
-                    plan,
+                    contract,
                     client,
                 )
                 futures[future] = running
@@ -448,7 +446,7 @@ def _run_queue(  # noqa: PLR0913
                         progress=progress,
                         futures=futures,
                         executor=executor,
-                        plan=plan,
+                        contract=contract,
                         client=client,
                         max_attempts=max_attempts,
                         max_consecutive_failures=max_consecutive_failures,
@@ -483,7 +481,7 @@ def _handle_conversion_failure(  # noqa: PLR0913
     progress: _QueueProgress,
     futures: dict[Future[ConversionResult], StateRecord],
     executor: ThreadPoolExecutor,
-    plan: ArchivePlan,
+    contract: Contract,
     client: S3Client,
     max_attempts: int,
     max_consecutive_failures: int,
@@ -515,7 +513,7 @@ def _handle_conversion_failure(  # noqa: PLR0913
     retry = executor.submit(
         _convert_one,
         running,
-        plan,
+        contract,
         client,
     )
     futures[retry] = running
@@ -524,18 +522,18 @@ def _handle_conversion_failure(  # noqa: PLR0913
 
 def _convert_one(
     record: StateRecord,
-    plan: ArchivePlan,
+    contract: Contract,
     client: S3Client,
 ) -> ConversionResult:
     _validate_source_destination(
-        plan,
+        contract,
         record.source_key,
         record.source_uri,
         record.destination_relative,
     )
     source, _, _ = download_object(
         client,
-        bucket=plan.source.bucket,
+        bucket=contract.source.bucket,
         key=record.source_key,
         expected_size=record.expected_size,
         expected_etag=record.expected_etag,
@@ -544,12 +542,12 @@ def _convert_one(
     source_sha256 = sha256_bytes(source)
     if record.source_sha256 is not None and source_sha256 != record.source_sha256:
         raise ValueError(f"source SHA-256 changed since prior verification: {record.source_uri}")
-    image = decode_tiff(source, expected_shape=plan.image_shape)
+    image = decode_tiff(source)
     image_shape = (int(image.shape[0]), int(image.shape[1]))
-    encoded = encode_jxl(image, plan.codec)
+    encoded = encode_jxl(image, contract.codec)
     decoded = verify_jxl(encoded, expected_shape=image_shape, expected_dtype=image.dtype)
-    destination = safe_destination(plan.destination_root, record.destination_relative)
-    ensure_group_directories(plan.destination_root, destination.parent)
+    destination = safe_destination(contract.destination.root, record.destination_relative)
+    ensure_group_directories(contract.destination.root, destination.parent)
     output_sha256 = sha256_bytes(encoded)
     atomic_write_bytes(destination, encoded)
 
@@ -568,17 +566,18 @@ def _convert_one(
     )
 
 
-def _audit_verified_record(record: StateRecord, plan: ArchivePlan) -> str | None:  # noqa: PLR0911
+def _audit_verified_record(record: StateRecord, contract: Contract) -> str | None:  # noqa: PLR0911
     try:
-        destination = safe_destination(plan.destination_root, record.destination_relative)
+        destination = safe_destination(contract.destination.root, record.destination_relative)
+        shape = _record_shape(record)
         if record.source_bytes is None or record.source_sha256 is None:
             return "verified state lacks source byte count or SHA-256"
         if record.expected_size is not None and record.source_bytes != record.expected_size:
             return "verified source byte count differs from its metadata snapshot"
         if record.output_bytes is None or record.output_sha256 is None:
             return "verified state lacks output byte count or SHA-256"
-        if record.shape is None or tuple(record.shape) != plan.image_shape or record.dtype != plan.image_dtype:
-            return "verified state lacks the contracted decoded shape or dtype"
+        if shape is None or record.dtype != "uint16":
+            return "verified state lacks its decoded shape or uint16 dtype"
         if not destination.is_file():
             return f"verified output is absent: {destination}"
         payload = destination.read_bytes()
@@ -586,7 +585,7 @@ def _audit_verified_record(record: StateRecord, plan: ArchivePlan) -> str | None
             return f"verified output size changed: {destination}"
         if sha256_bytes(payload) != record.output_sha256:
             return f"verified output SHA-256 changed: {destination}"
-        verify_jxl(payload, expected_shape=plan.image_shape, expected_dtype=plan.image_dtype)
+        verify_jxl(payload, expected_shape=shape, expected_dtype=record.dtype)
     except Exception as error:  # noqa: BLE001 - convert audit failures into requeue reasons
         return f"verified output audit failed: {type(error).__name__}: {error}"
     return None
@@ -594,10 +593,11 @@ def _audit_verified_record(record: StateRecord, plan: ArchivePlan) -> str | None
 
 def _validate_verified_record(  # noqa: PLR0911
     record: StateRecord,
-    plan: ArchivePlan,
+    contract: Contract,
 ) -> str | None:
-    if record.shape is None or tuple(record.shape) != plan.image_shape or record.dtype != plan.image_dtype:
-        return "verified state lacks the contracted decoded shape or dtype"
+    shape = _record_shape(record)
+    if shape is None or record.dtype != "uint16":
+        return "verified state lacks its decoded shape or uint16 dtype"
     if record.source_bytes is None or record.source_sha256 is None:
         return "verified state lacks source byte count or SHA-256"
     if record.expected_size is not None and record.source_bytes != record.expected_size:
@@ -605,7 +605,7 @@ def _validate_verified_record(  # noqa: PLR0911
     if record.output_bytes is None or record.output_sha256 is None:
         return "verified state lacks output byte count or SHA-256"
     try:
-        destination = safe_destination(plan.destination_root, record.destination_relative)
+        destination = safe_destination(contract.destination.root, record.destination_relative)
         if not destination.is_file():
             return f"verified output is absent: {destination}"
         payload = destination.read_bytes()
@@ -613,23 +613,32 @@ def _validate_verified_record(  # noqa: PLR0911
             return f"verified output size changed: {destination}"
         if sha256_bytes(payload) != record.output_sha256:
             return f"verified output SHA-256 changed: {destination}"
-        verify_jxl(payload, expected_shape=plan.image_shape, expected_dtype=plan.image_dtype)
+        verify_jxl(payload, expected_shape=shape, expected_dtype=record.dtype)
     except Exception as error:  # noqa: BLE001 - collect validation failures for the report
         return f"JPEG XL decode validation failed: {type(error).__name__}: {error}"
     return None
 
 
+def _record_shape(record: StateRecord) -> tuple[int, int] | None:
+    shape = record.shape
+    if shape is None or len(shape) != _IMAGE_DIMENSIONS or any(dimension < 1 for dimension in shape):
+        return None
+    return shape[0], shape[1]
+
+
 def _validate_source_destination(
-    plan: ArchivePlan,
+    contract: Contract,
     source_key: str,
     source_uri: str,
     destination_relative: str,
 ) -> None:
     parsed = urlsplit(source_uri)
-    if parsed.scheme != "s3" or parsed.netloc != plan.source.bucket or parsed.query or parsed.fragment:
+    if parsed.scheme != "s3" or parsed.netloc != contract.source.bucket or parsed.query or parsed.fragment:
         raise ValueError(f"source URI left the contract bucket: {source_uri}")
-    if parsed.path.lstrip("/") != source_key or not source_key.startswith(f"{plan.source.prefix}/"):
+    if parsed.path.lstrip("/") != source_key or not source_key.startswith(f"{contract.source.prefix}/"):
         raise ValueError(f"source URI/key identity mismatch: {source_uri}")
+    if PurePosixPath(source_key).suffix.lower() not in {".tif", ".tiff"}:
+        raise ValueError(f"source is not a TIFF object: {source_key!r}")
     destination = PurePosixPath(destination_relative)
     if (
         destination.is_absolute()
@@ -639,7 +648,6 @@ def _validate_source_destination(
         or destination.suffix != ".jxl"
     ):
         raise ValueError(f"destination is not a safe relative JPEG XL path: {destination_relative!r}")
-    plan.validate_row(source_key, source_uri, destination_relative)
 
 
 def _optional_int(value: object) -> int | None:
@@ -679,13 +687,6 @@ def _require_artifact_pin(path: Path, expected_sha256: str | None, label: str) -
     return actual_sha256
 
 
-def write_inventory_fixture(path: Path, records: list[dict[str, object]]) -> None:
-    """Write a tiny inventory for integration tests without touching real data."""
-    table = pa.Table.from_pylist(records)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    pq.write_table(table, path)
-
-
 __all__ = [
     "DEFAULT_MAX_CONSECUTIVE_FAILURES",
     "ArchiveRunResult",
@@ -697,5 +698,4 @@ __all__ = [
     "run_archive",
     "state_report",
     "validate_archive",
-    "write_inventory_fixture",
 ]

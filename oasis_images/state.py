@@ -3,8 +3,8 @@
 
 The database is an execution ledger, not an output-existence cache. A record is
 ``verified`` only after the archive worker has validated and atomically promoted
-its output. Callers must audit previously verified files on startup and use
-``requeue`` when an output is absent or no longer matches its persisted digest.
+its output. A full audit is intentionally separate from an ordinary fast resume;
+invalid audited outputs return to the queue through ``requeue``.
 """
 
 from __future__ import annotations
@@ -105,11 +105,6 @@ class StateRecord:
     started_at: str | None
     verified_at: str | None
     expected_version_id: str | None = None
-
-    @property
-    def destination_relpath(self) -> str:
-        """Return a compatibility alias for ``destination_relative``."""
-        return self.destination_relative
 
 
 class ArchiveState:
@@ -1126,46 +1121,30 @@ def _coerce_identity(record: object) -> ManifestIdentity:
         source_key=_required_text(_field(record, "source_key"), "source_key"),
         source_uri=_required_text(_field(record, "source_uri"), "source_uri"),
         destination_relative=_required_text(
-            _field(record, "destination_relative", "destination_relpath"),
+            _field(record, "destination_relative"),
             "destination_relative",
         ),
         expected_size=_optional_nonnegative_int(
-            _field(
-                record,
-                "expected_size",
-                "expected_size_bytes",
-                "snapshot_size_bytes",
-                default=None,
-            ),
+            _field(record, "expected_size", default=None),
             "expected_size",
         ),
         expected_etag=_optional_text(
-            _field(record, "expected_etag", "snapshot_etag", default=None),
+            _field(record, "expected_etag", default=None),
             "expected_etag",
         ),
         expected_version_id=_optional_text(
-            _field(
-                record,
-                "expected_version_id",
-                "source_version_id",
-                "version_id",
-                default=None,
-            ),
+            _field(record, "expected_version_id", default=None),
             "expected_version_id",
         ),
     )
 
 
-def _field(record: object, name: str, *aliases: str, default: object = _MISSING) -> object:
-    names = (name, *aliases)
+def _field(record: object, name: str, *, default: object = _MISSING) -> object:
     if isinstance(record, Mapping):
-        for candidate in names:
-            if candidate in record:
-                return record[candidate]
-    else:
-        for candidate in names:
-            if hasattr(record, candidate):
-                return getattr(record, candidate)
+        if name in record:
+            return record[name]
+    elif hasattr(record, name):
+        return getattr(record, name)
     if default is not _MISSING:
         return default
     msg = f"manifest record is missing {name!r}"

@@ -18,7 +18,6 @@ from oasis_images.contract import (
     CodecContract,
     Contract,
     DestinationContract,
-    FrozenDict,
     IndexContract,
     InventoryContract,
     SourceContract,
@@ -113,6 +112,8 @@ def _contract(root: Path, index_path: Path) -> Contract:
             field_count=1,
             plate_count=1,
             channel_count=1,
+            manifest_sha256=None,
+            rejected_sha256=None,
         ),
         codec=CodecContract(
             id="jpegxl-d1-e5",
@@ -121,10 +122,15 @@ def _contract(root: Path, index_path: Path) -> Contract:
             lossless=False,
             distance=1.0,
             effort=5,
+            reference_repository="https://example.invalid/reference",
+            reference_commit="0" * 40,
+            reference_path="codec.py",
+            reference_sha256="0" * 64,
+            reference_tier="fixture",
         ),
         destination=DestinationContract(root / "archive", "{codec_id}/{batch}/images/{plate}/{stem}.jxl"),
         batches=("prod_25",),
-        channels=FrozenDict({"DNA": 1}),
+        channels={"DNA": 1},
     )
 
 
