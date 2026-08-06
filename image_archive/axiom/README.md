@@ -23,9 +23,12 @@ No channel stacking, normalization, intensity transformation, cropping, resizing
 
 ## Known limitation: this archive is lossy and has not been validated for measurement
 
-`jpegxl-d1-e5` is a lossy tier.
-Nobody has checked whether morphological profiles computed from these `.jxl` objects match profiles computed from the source TIFFs.
-Until that comparison exists, treat this archive as a storage derivative for browsing, visualization, and retrieval, and use the Cell Painting Gallery TIFFs for any measurement that ends up in a result.
+`jpegxl-d1-e5` is a lossy tier, and no one has checked whether profiles computed from these `.jxl` objects match profiles computed from the source TIFFs *for this dataset*.
+Until that is checked, treat this archive as a storage derivative for browsing, visualization, and retrieval, and use the Cell Painting Gallery TIFFs for any measurement that ends up in a result.
+
+The tier itself is not unexamined.
+JUMP-lite, which is where these settings come from, evaluates this exact distance-1.0 tier against a lossless reference on a 855,519-site subset of JUMP: per-cell CellProfiler feature correlations, segmentation IoU and instance AP, and mAP-family retrieval reported as percent change from lossless.
+That is strong prior evidence, but it was measured on JUMP (`cpg0016`) with a different cell line, imager, and intensity distribution, not on Axiom OASIS, and its manuscript is forthcoming so there are no numbers to quote yet.
 
 The compression is aggressive.
 The archive is 323 GB from 17.8 TB of source TIFFs, a 55x reduction, and the ratio varies more than twofold across channels:
@@ -53,7 +56,12 @@ JPEG XL's distance parameter targets butteraugli, a perceptual metric, and does 
 
 This is a description of the archive, not a study.
 It says nothing directly about features or profiles.
-It does say that if anyone checks equivalence, Brightfield-derived features are the place to start, and that texture, granularity, and radial-distribution features, which depend on exactly the high-frequency content a lossy codec discards first, are more at risk than integrated-intensity features.
+It does say that Brightfield-derived features are where to look first, and that texture, granularity, and radial-distribution features, which depend on exactly the high-frequency content a lossy codec discards first, are more at risk than integrated-intensity features.
+
+The mechanism is documented by the codec's own authors.
+In [libjxl issue #314](https://github.com/libjxl/libjxl/issues/314), on 16-bit grayscale medical images, libjxl maintainers advise against perceptual lossy mode for data viewed through a narrow intensity window, giving the example of a CT scan stored over `[0..4095]` but displayed over `[950..1100]`, where "storing values [0..4095] psychovisually doesn't work".
+Brightfield here is that case.
+The [butteraugli README](https://github.com/google/butteraugli) likewise describes it as "a research tool more than a practical tool", tuned on 8-bit images "roughly corresponding to jpeg qualities 90 to 95", and libjxl's own `cjxl` manpage hedges distance 1.0 to "should be visually lossless" without stating any per-pixel error bound.
 
 Scope and status of the real comparison are tracked in [issue #44](https://github.com/broadinstitute/2024_09_09_Axiom_OASIS/issues/44).
 
