@@ -49,6 +49,26 @@ npx skills@1.5.20 add marimo-team/marimo-pair -s marimo-pair -a claude-code -a c
 `skills-lock.json` records their sources and content hashes.
 The installer-owned copies under `.agents/skills/` and `.claude/skills/` are local generated state and are ignored by Git.
 
+## Tests
+
+Run the pipeline and repository-only paper tests in the locked pipeline environment:
+
+```bash
+direnv exec . pixi run -e pipeline python -m unittest discover -s 1_snakemake/tests
+direnv exec . pixi run -e pipeline python -m unittest \
+  paper.tests.test_compiled_results \
+  paper.tests.test_paper_reproduce \
+  paper.tests.test_reproduce_all
+```
+
+Run the renderer and living-paper tests in the locked notebooks environment:
+
+```bash
+direnv exec . pixi run -e notebooks python -m unittest \
+  paper.tests.test_living_results \
+  paper.tests.test_render_sfig1
+```
+
 ## Living results notebook
 
 [![Open in molab](https://marimo.io/molab-shield.svg)](https://molab.marimo.io/github/broadinstitute/2024_09_09_Axiom_OASIS/blob/main/paper/living_results.py)

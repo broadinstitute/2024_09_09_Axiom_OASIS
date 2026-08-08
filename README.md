@@ -20,6 +20,9 @@ See [image_archive/axiom/README.md](image_archive/axiom/README.md) for the resta
 The instructions below describe the original analysis layout.
 Several scripts they reference do not run as published; `paper/REPRODUCING.md` identifies the repairs and remaining boundaries.
 
+Tests live with the pipeline, paper, or archive subsystem they exercise.
+The owner READMEs provide the locked-environment commands for each test group.
+
 Scripts for downloading and preparing the data are included in the `0_prepare_data` folder.
 The main analysis is in the 1_snakemake folder, and exploratory notebooks for visualizing results and comparing across pipeline variations are in the 2_downstream_analysis folder.
 

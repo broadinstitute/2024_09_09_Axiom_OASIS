@@ -40,6 +40,12 @@ Before any image transfer, provision and register the destination according to t
 The command-line interface requires the configured destination to exist, be writable, contain no symlinked path components, and reside on a non-root mounted filesystem.
 User, group, registry, and exact-path policy remain in the runbook and service configuration rather than the reusable Python code.
 
+Run the archive tests from the repository root:
+
+```bash
+direnv exec . pixi run -e images python -m unittest discover -s image_archive/tests
+```
+
 ## Reuse
 
 The Python package in `image_archive/` is the dataset-agnostic tool; `image_archive/axiom/` is one worked instance of it.
