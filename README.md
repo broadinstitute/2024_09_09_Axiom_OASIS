@@ -1,18 +1,29 @@
 # 2024_09_09_Axiom_OASIS
 
-> **Reproducing the results?**
->
-> Run `uv run paper/reproduce_all.py` for the isolated, resumable end-to-end reproduction, or add `--dry-run` to inspect its exact plan first.
-> See [REPRODUCING.md](REPRODUCING.md) for the manual from-scratch recipe (Nix + Pixi environments, data, pipeline, notebooks), the acceptance boundaries, and what the regenerated results look like next to the committed ones.
-> The instructions below describe the original layout; several of the scripts they reference do not run as published, and `REPRODUCING.md` says which.
+This repository contains the Axiom OASIS analysis, its paper reproduction record, and image-archive tools.
 
-> **Working from the paper?**
->
-> Run `uv run paper/reproduce.py` for the repository-only executable paper.
-> See [paper/README.md](paper/README.md) for the searchable paper, published source files, complete target inventory, acceptance rules, and evidence workflow.
+## Repository map
 
-This repository is for analyzing the Axiom OASIS imaging data.
-Scripts for downloading the data from the Cell Painting Gallery are included in the 0_data_download folder.
+- `0_prepare_data/` prepares the original analysis inputs.
+- `1_snakemake/` contains the primary analysis pipeline.
+- `2_downstream_analysis/` contains manuscript and exploratory notebooks plus compiled results.
+- `paper/` contains the published sources, target ledger, evidence, executable paper, and end-to-end reproduction workflow.
+- `image_archive/` contains the reusable image-archive package and the completed Axiom JPEG XL archive record.
+
+## Reproduction and archive entry points
+
+Run `uv run paper/reproduce.py` for the repository-only executable paper.
+Run `uv run paper/reproduce_all.py` for the isolated, resumable end-to-end reproduction, or add `--dry-run` to inspect its exact plan first.
+See [paper/README.md](paper/README.md) for the paper evidence workflow and [paper/REPRODUCING.md](paper/REPRODUCING.md) for the manual from-scratch recipe, acceptance boundaries, and known deviations.
+See [image_archive/axiom/README.md](image_archive/axiom/README.md) for the restartable JPEG XL archive workflow and completed-run evidence.
+
+The data-preparation notes below describe the original analysis workflow.
+Some original scripts do not run as published; `paper/REPRODUCING.md` identifies the repairs and remaining boundaries.
+
+Tests live with the pipeline, paper, or archive subsystem they exercise.
+The locked pipeline and paper test commands are in [paper/README.md](paper/README.md), and the archive test command is in [image_archive/axiom/README.md](image_archive/axiom/README.md).
+
+Scripts for downloading and preparing the data are included in the `0_prepare_data` folder.
 The main analysis is in the 1_snakemake folder, and exploratory notebooks for visualizing results and comparing across pipeline variations are in the 2_downstream_analysis folder.
 
 ## Skipping input data formatting

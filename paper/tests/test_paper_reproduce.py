@@ -25,7 +25,7 @@ os.environ.setdefault("MPLCONFIGDIR", _MPL_CONFIG_DIRECTORY.name)
 
 reproduce = importlib.import_module("paper.reproduce")
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SHA256_HEX_LENGTH = 64
 ZIP_CENTRAL_CRC_OFFSET = 16
 ZIP_CENTRAL_HEADER_SIGNATURE = b"PK\x01\x02"

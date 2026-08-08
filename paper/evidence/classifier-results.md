@@ -3,7 +3,7 @@
 Targets: `FIG-3AB`, `FIG-3C`, `FILTER-001`, `FILTER-002`, `FIG-4A`, `REPRESENTATION-001`, `FIG-4B`, `SFIG-4`, `CONCLUSION-002`, and `CONCLUSION-003`.
 
 The input commit was signed commit `00ea45a429a7f54db120079febc07d3c8d9c4c75`.
-This audit used camera-ready main Sections 3.2 through 3.2.2 and Figures 3 and 4, camera-ready supplemental Figure S4, all four committed compiled metric Parquets, the current base and separately named filtered CellProfiler prediction Parquets, current CP-CNN and DINO prediction Parquets, stored code and outputs in notebooks `3_2_1_compare_endpoint_types.ipynb`, `3_2_2_compare_concs_reps.ipynb`, and `3_2_3_compare_endpoints_detail.ipynb`, the classifier implementation, `verification/compiled_results.py`, `REPRODUCING.md`, and the prior ToxCast and classifier evidence notes.
+This audit used camera-ready main Sections 3.2 through 3.2.2 and Figures 3 and 4, camera-ready supplemental Figure S4, all four committed compiled metric Parquets, the current base and separately named filtered CellProfiler prediction Parquets, current CP-CNN and DINO prediction Parquets, stored code and outputs in notebooks `3_2_1_compare_endpoint_types.ipynb`, `3_2_2_compare_concs_reps.ipynb`, and `3_2_3_compare_endpoints_detail.ipynb`, the classifier implementation, `paper/verification/compiled_results.py`, `paper/REPRODUCING.md`, and the prior ToxCast and classifier evidence notes.
 No notebook, classifier, POD fit, Snakemake rule, or scientific workflow was executed.
 Read-only scratch calculations wrote only under `/tmp`.
 Published JPEGs were used only to inspect labels, distributions, and directions, not as pixel baselines.

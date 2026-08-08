@@ -57,7 +57,7 @@ The repository implements every scientific stage shown in Figure 1:
 - `1_snakemake/rules/classifier.smk` combines processed profiles with paired-assay and ToxCast annotations for cytotoxicity and mode-of-action prediction.
 - Existing outputs under `1_snakemake/outputs/{cellprofiler,cpcnn,dino}/` cover morphology profiles, dose-response results, and classifier predictions.
 
-The top-level `REPRODUCING.md` independently records successful runs of all three manuscript configurations and the resulting output classes.
+`paper/REPRODUCING.md` independently records successful runs of all three manuscript configurations and the resulting output classes.
 The stages, sample scale, assay identities, and intended outcomes agree with the published overview.
 Publisher layout was not treated as an acceptance baseline.
 

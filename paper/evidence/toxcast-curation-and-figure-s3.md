@@ -3,7 +3,7 @@
 Targets: `TOXCAST-001`, `TOXCAST-002`, `TOXCAST-003`, `METHOD-TOXCAST`, and `SFIG-3`.
 
 The input commit was signed commit `6081dd364648f73c26f948199d5a5afa1ae9ea1d`.
-This audit used camera-ready main-page 7 and STAR Methods pages e3-e4, published supplemental Figure S3, the six pinned ToxCast Parquets, the pinned OASIS annotation CSV, the current exposure metadata, committed code and stored outputs in notebooks `3B_extract_invitrodb.ipynb` and `3_1_toxcast_endpoints.ipynb`, and the compiled-metric context in `REPRODUCING.md`.
+This audit used camera-ready main-page 7 and STAR Methods pages e3-e4, published supplemental Figure S3, the six pinned ToxCast Parquets, the pinned OASIS annotation CSV, the current exposure metadata, committed code and stored outputs in notebooks `3B_extract_invitrodb.ipynb` and `3_1_toxcast_endpoints.ipynb`, and the compiled-metric context in `paper/REPRODUCING.md`.
 No notebook or scientific workflow was executed.
 All scratch calculations were read-only and wrote only under `/tmp`.
 
@@ -50,7 +50,7 @@ The ten source categories excluded for fewer than five positives are `cell_type_
 The paper's 48 therefore describes consensus source categories before the stated final class-support rule, while the classification-ready binary contains 38.
 
 Current compiled metrics contain 7,209 cell-based rows over 267 labels, 1,431 cell-free rows over 53 labels, and 918 cytotoxicity rows over 34 labels after profile intersection and downstream eligibility.
-`REPRODUCING.md` records exact regenerated row and semantic-key sets for those metrics and bit-exact core values for the 2,709 `AggType == "all"` cell-based and cytotoxicity rows.
+`paper/REPRODUCING.md` records exact regenerated row and semantic-key sets for those metrics and bit-exact core values for the 2,709 `AggType == "all"` cell-based and cytotoxicity rows.
 Those downstream subsets independently validate stable label consumption but do not turn 38 classification-ready cytotoxicity keys into 48.
 
 ## Curation rule trace

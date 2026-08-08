@@ -24,7 +24,7 @@ Its 429 MT, 220 cell-count, and 147 LDH rows have 437 unique compound names, so 
 Relative to Table S2, the current CellProfiler MT set adds Binimetinib, Omadacycline, and Progesterone and loses Alfacalcidol and Clodinafop-propargyl.
 The current CellProfiler cell-count set adds Tolterodine, while the current LDH set loses Infigratinib, Tenofovir alafenamide, and Triclosan.
 Across assays, the current CellProfiler union adds Binimetinib, Omadacycline, and Progesterone and loses Alfacalcidol and Clodinafop-propargyl relative to Table S2, for a net change from 437 to 438.
-The existing `REPRODUCING.md` comparison independently documents environment-sensitive curve-model and pass-call drift for these assay POD tables, which is the likely cause of the historical Table S2 differences.
+The existing `paper/REPRODUCING.md` comparison independently documents environment-sensitive curve-model and pass-call drift for these assay POD tables, which is the likely cause of the historical Table S2 differences.
 The deviations are at most three assay calls and one unique compound in each total, preserve the rounded percentages, and preserve the MT greater than cell count greater than LDH activity ranking.
 
 The DINO notebook discrepancy is more specific.
@@ -35,7 +35,7 @@ For Clodinafop-propargyl, the compound wells and values and the 1,035 applicable
 `fit_curves_meta.R` sorts only by concentration, leaving the equal-concentration DMSO order unresolved.
 The CellProfiler order selects a failing Exp2 fit, while the DINO order selects a passing Exp3 fit with a 79.4353 uM POD, which accounts exactly for the displayed change from 430 and 10 to 431 and 11.
 Ezetimibe similarly changes from a passing Power cell-count fit in CellProfiler to a failing Poly2 fit in DINO.
-This is consistent with the order-sensitive nonlinear model selection already demonstrated in `REPRODUCING.md`.
+This is consistent with the order-sensitive nonlinear model selection already demonstrated in `paper/REPRODUCING.md`.
 
 ## Figure 2A
 

@@ -9,7 +9,7 @@ Mode: `tracked`.
 Targets covered: 53.
 Executed groups: sources_design, activity_pods, regression_enrichment, toxcast, classifier, external_image.
 Validated tracked inputs: 60.
-Ledger SHA-256: `e0bc966efd96e283084c386e6a209eb5580e56b0493572882d1c28657bab02e1`.
+Ledger SHA-256: `5e59e1169788549c6ac38f4385648d38d6a8c77fa28b29cd4f7d9b9f31ae0b99`.
 
 ## Execution outcome counts
 
@@ -1148,7 +1148,7 @@ Kind: table.
 Expected: Published MT, cell-count, and LDH POD results.
 Full acceptance: close: schemas and semantic keys agree; coverage, median differences, validity, and material tail satisfy the existing POD gates.
 Producer: 2_downstream_analysis/compiled_results/SI_tables.
-Ledger evidence: evidence/published-table-bridge.md; ../REPRODUCING.md.
+Ledger evidence: evidence/published-table-bridge.md; REPRODUCING.md.
 Historical ledger status: `reproduced-with-deviation`.
 Execution outcome: `checked`; availability: `available`; evidence strength: `source-recomputation`.
 Declared deviation: Published workbook keys match all 796 committed semantic rows and POD values agree to spreadsheet precision; regenerated gates pass with documented drift.
@@ -1174,7 +1174,7 @@ Kind: table.
 Expected: Published CellProfiler, CP-CNN, and DINO POD results.
 Full acceptance: close: schemas and semantic keys agree; coverage, median differences, validity, and material tail satisfy the existing POD gates.
 Producer: 2_downstream_analysis/compiled_results/SI_tables.
-Ledger evidence: evidence/published-table-bridge.md; ../REPRODUCING.md.
+Ledger evidence: evidence/published-table-bridge.md; REPRODUCING.md.
 Historical ledger status: `reproduced-with-deviation`.
 Execution outcome: `checked`; availability: `available`; evidence strength: `source-recomputation`.
 Declared deviation: Published workbook keys match all 10935 nonblank committed semantic rows and POD values agree to spreadsheet precision; regenerated gates pass with documented drift.
@@ -1200,7 +1200,7 @@ Kind: table.
 Expected: Published cross-assay compound activity summary including the 121-compound all-POD subset.
 Full acceptance: close: compound identities and main assay-activity relationships agree; small POD pass-call drift is documented.
 Producer: 2_downstream_analysis/manuscript_notebooks/4_1_results_tables_SI.ipynb.
-Ledger evidence: evidence/published-table-bridge.md; ../REPRODUCING.md.
+Ledger evidence: evidence/published-table-bridge.md; REPRODUCING.md.
 Historical ledger status: `reproduced-with-deviation`.
 Execution outcome: `checked`; availability: `available`; evidence strength: `source-recomputation`.
 Declared deviation: Published workbook matches all 1086 committed hit-summary rows; regenerated keys are exact and 1070 of 1086 complete hit calls agree.
@@ -1279,7 +1279,7 @@ Kind: method.
 Expected: Paper describes eight named models, residual-SD selection, DMSO 95th-percentile benchmark, and confidence-ratio and concentration filters.
 Full acceptance: exact: model families and thresholds match; the known selection-rule discrepancy is explicit.
 Producer: 1_snakemake/concresponse.
-Ledger evidence: evidence/method-deviations.md; ../REPRODUCING.md.
+Ledger evidence: evidence/method-deviations.md; REPRODUCING.md.
 Historical ledger status: `reproduced-with-deviation`.
 Execution outcome: `documentary-only`; availability: `documentary-only`; evidence strength: `documentary-trace`.
 Declared deviation: Morphology selects minimum residual SD; cell count, MT, and LDH use scoresPOD default rounded-AIC selection despite the paper's general residual-SD wording.

@@ -14,7 +14,7 @@ import tifffile
 from image_archive.codec import CodecError, decode_jxl, decode_tiff, encode_jxl, verify_jxl
 from image_archive.contract import load_contract
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_CONTRACT = REPO_ROOT / "image_archive" / "axiom" / "source.toml"
 
 

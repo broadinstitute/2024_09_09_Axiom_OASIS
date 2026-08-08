@@ -37,7 +37,7 @@ uv run paper/reproduce_all.py
 
 The runner creates an ignored directory under `paper/runs/` and directs every scientific producer into an archived `HEAD` workspace.
 Its manifest, logs, verified input cache, and review artifacts remain beside that workspace under the ignored `paper/runs/` namespace.
-It preserves the committed compiled results as a read-only reference, creates a fresh candidate directory containing only explicitly seeded non-generated files, verifies or downloads the five Zenodo inputs by full MD5 and byte count, installs both locked Pixi environments, and is wired to run all 13 supported Snakemake configurations and 17 notebooks before applying `verification.compiled_results` to the regenerated core candidate.
+It preserves the committed compiled results as a read-only reference, creates a fresh candidate directory containing only explicitly seeded non-generated files, verifies or downloads the five Zenodo inputs by full MD5 and byte count, installs both locked Pixi environments, and is wired to run all 13 supported Snakemake configurations and 17 notebooks before applying `paper.verification.compiled_results` to the regenerated core candidate.
 It also downloads and renders the exact five-channel field for supplemental Figure S1, runs the tracked 53-target accounting audit against a separate pristine snapshot, and exports executed notebooks and their plot assets to greppable Markdown.
 The 14-notebook core, repaired MTT outputs, semantic verifier, and Figure S1 renderer have been exercised independently; the first complete 13-configuration, 17-notebook GPU invocation remains pending.
 
@@ -195,7 +195,7 @@ After running the notebooks, invoke the read-only verifier from the repository r
 ```bash
 (
   trap 'git checkout -- 2_downstream_analysis/compiled_results' EXIT
-  pixi run -e pipeline python -m verification.compiled_results \
+  pixi run -e pipeline python -m paper.verification.compiled_results \
     --reference "$reference_root/compiled_results" \
     --candidate 2_downstream_analysis/compiled_results \
     --json-report /tmp/axiom-verification.json

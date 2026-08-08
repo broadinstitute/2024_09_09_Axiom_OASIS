@@ -29,4 +29,4 @@ Cell count, MT, and LDH instead use the default rounded-AIC model selection in `
 The remaining documented contracts still apply: eight model families, the DMSO 95th-percentile benchmark response, confidence-interval ratio filtering, and tested-concentration filtering.
 
 Decision: `reproduced-with-deviation` because the model-selection difference is real and can change discrete model and POD pass calls.
-The numerical consequences are reported in the top-level `REPRODUCING.md`.
+The numerical consequences are reported in `paper/REPRODUCING.md`.
