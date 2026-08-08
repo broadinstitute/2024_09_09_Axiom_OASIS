@@ -6,9 +6,9 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
+# Pipeline and paper tests run under separate locked Pixi environments with
+# the unittest commands documented in paper/README.md.
 testpaths = [
-    "1_snakemake/tests",
-    "paper/tests",
     "image_archive/tests",
 ]
 markers = [

@@ -12,7 +12,7 @@ The rows map to `mt_pods.csv` (429), `cellcount_pods.csv` (220), and `ldh_pods.c
 The workbook and committed CSVs have identical `(OASIS_ID, Compound_name)` keys within each assay file.
 POD point and bound values agree to spreadsheet precision, with maximum absolute difference `4.55e-13` and maximum relative difference `4.78e-15` after numeric parsing.
 
-The regenerated-versus-committed comparison in `REPRODUCING.md` passes the configured coverage, within-1%, median-difference, and validity gates while reporting expected row and model-selection drift.
+The regenerated-versus-committed comparison in `paper/REPRODUCING.md` passes the configured coverage, within-1%, median-difference, and validity gates while reporting expected row and model-selection drift.
 
 Decision: `reproduced-with-deviation`.
 
@@ -23,7 +23,7 @@ The rows map to `cellpainting_cellprofiler_pods.csv` (6,965), `cellpainting_cpcn
 The workbook and committed CSVs have identical `(OASIS_ID, Compound_name, Assay_Endpoint)` keys and identical bioactivity flags.
 POD point and bound values agree to spreadsheet precision, with maximum absolute difference `5.12e-13` and maximum relative difference `4.95e-15` after numeric parsing.
 
-The regenerated-versus-committed comparison in `REPRODUCING.md` passes the configured gates with the documented environment-sensitive tail.
+The regenerated-versus-committed comparison in `paper/REPRODUCING.md` passes the configured gates with the documented environment-sensitive tail.
 
 Decision: `reproduced-with-deviation`.
 

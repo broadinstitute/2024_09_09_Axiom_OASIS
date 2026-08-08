@@ -3,7 +3,7 @@
 Targets: `BIOACTIVITY-001`, `FIG-2B`, `BIOACTIVITY-002`, `FIG-2C`, `BIOACTIVITY-003`, `FIG-2D`, and `CONCLUSION-001`.
 
 The input commit was `ec2e836223ddf5f591e60b19c20608a32d9c737b`.
-This check used the camera-ready PDF and Figure 2, published Tables S2-S4, their exact committed SI CSV bridge, current base-scenario Parquets, stored code and outputs in `4_1_results_tables_SI.ipynb` and `1_3_compare_pods.ipynb`, and `REPRODUCING.md`.
+This check used the camera-ready PDF and Figure 2, published Tables S2-S4, their exact committed SI CSV bridge, current base-scenario Parquets, stored code and outputs in `4_1_results_tables_SI.ipynb` and `1_3_compare_pods.ipynb`, and `paper/REPRODUCING.md`.
 No notebook or scientific workflow was executed.
 Small read-only calculations applied the committed filters and paired tests to the existing files.
 The blocked `1_3_compare_pods.ipynb` notebook was not executed, and none of the nine excluded `_log10`, `_int`, or `_ap` pipeline configurations was run.

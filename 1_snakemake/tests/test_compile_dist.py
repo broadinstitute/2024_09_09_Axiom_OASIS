@@ -1,3 +1,4 @@
+# ruff: noqa: INP001
 """Tests for deterministic distance-table compilation."""
 
 from __future__ import annotations

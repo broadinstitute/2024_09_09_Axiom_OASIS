@@ -664,8 +664,15 @@ def _analyze_sources_design(root: Path) -> dict[str, object]:
         "statistical_thresholds": all(
             token in paper_text for token in ("p \\< 0.05", "FDR cutoff of \\< 0.05", "5,500 cells")
         ),
-        "resource_locations": all(
-            token in paper_text + readme_text for token in ("cpg0037-oasis/axiom", "10.5281/zenodo.18242918")
+        "resource_locations": all(token in paper_text for token in ("cpg0037-oasis/axiom", "10.5281/zenodo.18242918"))
+        and all(
+            token in readme_text
+            for token in (
+                "uv run paper/reproduce.py",
+                "uv run paper/reproduce_all.py",
+                "paper/REPRODUCING.md",
+                "image_archive/axiom/README.md",
+            )
         ),
         "table_key_resources": len(key_resource_rows) - 1 == 34,
         "tracked_only_boundary": "normal clone" in reproducing_text

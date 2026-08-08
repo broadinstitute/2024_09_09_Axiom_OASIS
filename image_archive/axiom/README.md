@@ -48,7 +48,8 @@ direnv exec . pixi run -e images python -m unittest discover -s image_archive/te
 
 ## Reuse
 
-The Python package in `image_archive/` is the dataset-agnostic tool; `image_archive/axiom/` is one worked instance of it.
+The runtime modules in `image_archive/` are the dataset-agnostic tool; `image_archive/axiom/` is one worked instance of it.
+The co-located test suite covers both generic runtime behavior and the tracked Axiom contract, so reuse only the generic tests unchanged and adapt the contract tests for the new dataset.
 For another dataset with the same six-column Axiom index schema, create a sibling directory such as `image_archive/<dataset>/`, copy `source.toml` into it, and change the index identity, S3 namespace, expected counts, batches, channels, codec settings, destination root, and object template.
 Run `inventory` to build the canonical manifest, record its inventory and rejected-row SHA-256 values in the contract, and then run `archive`.
 The conversion engine consumes only the canonical manifest columns and the contract, so image dimensions and dataset names are not compiled into the runtime.

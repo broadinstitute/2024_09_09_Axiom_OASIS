@@ -16,6 +16,22 @@ from unittest import mock
 
 reproduce_all = importlib.import_module("paper.reproduce_all")
 
+PAPER_TEST_MODULES_BY_ENVIRONMENT = {
+    "pipeline": frozenset(
+        {
+            "test_compiled_results",
+            "test_paper_reproduce",
+            "test_reproduce_all",
+        }
+    ),
+    "notebooks": frozenset(
+        {
+            "test_living_results",
+            "test_render_sfig1",
+        }
+    ),
+}
+
 
 def _add_tar_file(archive: tarfile.TarFile, name: str, payload: bytes) -> None:
     member = tarfile.TarInfo(name)
@@ -529,11 +545,20 @@ class PlanAndManifestTest(unittest.TestCase):
         )
         verifier = plan["semantic-verifier"][0]
         self.assertIn("paper.verification.compiled_results", verifier)
+        module_name = verifier[verifier.index("-m") + 1]
+        self.assertIsNotNone(importlib.util.find_spec(module_name))
         self.assertIn(str(paths.reference), verifier)
         self.assertNotIn("paper.reproduce", verifier)
         figure_s1 = plan["figure-s1"][0]
         self.assertIn(str(paths.workspace / "paper/render_sfig1.py"), figure_s1)
         self.assertIn(str(paths.artifacts / "sfig1"), figure_s1)
+
+    def test_every_paper_test_is_assigned_to_one_locked_environment(self) -> None:
+        test_directory = Path(__file__).resolve().parent
+        observed_modules = {path.stem for path in test_directory.glob("test_*.py")}
+        assigned_modules = set().union(*PAPER_TEST_MODULES_BY_ENVIRONMENT.values())
+        self.assertEqual(observed_modules, assigned_modules)
+        self.assertFalse(PAPER_TEST_MODULES_BY_ENVIRONMENT["pipeline"] & PAPER_TEST_MODULES_BY_ENVIRONMENT["notebooks"])
 
     def test_extended_stage_order_is_coarse_and_dependency_safe(self) -> None:
         self.assertLess(
