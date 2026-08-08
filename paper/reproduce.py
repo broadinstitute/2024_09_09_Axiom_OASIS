@@ -60,7 +60,7 @@ import pandas as pd
 from scipy.stats import hypergeom, ttest_rel
 from statsmodels.stats.multitest import multipletests
 
-from verification.compiled_results import (
+from paper.verification.compiled_results import (
     EXPECTED_AGG_TYPES,
     EXPECTED_ENRICHMENT_ROWS,
     EXPECTED_ENRICHMENT_UNIVERSE,
@@ -187,7 +187,7 @@ COMPILED_INPUTS = (
 )
 TRACE_INPUTS = (
     "README.md",
-    "REPRODUCING.md",
+    "paper/REPRODUCING.md",
     "paper/paper.md",
     "paper/targets.tsv",
     "paper/evidence/activity-and-figure-2a.md",
@@ -634,7 +634,7 @@ def _analyze_sources_design(root: Path) -> dict[str, object]:
         encoding="utf-8"
     )
     readme_text = _input_path(root, "README.md").read_text(encoding="utf-8")
-    reproducing_text = _input_path(root, "REPRODUCING.md").read_text(encoding="utf-8")
+    reproducing_text = _input_path(root, "paper/REPRODUCING.md").read_text(encoding="utf-8")
     figure_1_bytes = _input_path(root, "paper/figures/figure-1.jpg").read_bytes()
     _require(
         figure_1_bytes.startswith(b"\xff\xd8") and figure_1_bytes.endswith(b"\xff\xd9"),

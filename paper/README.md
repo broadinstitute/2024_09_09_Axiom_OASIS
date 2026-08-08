@@ -107,7 +107,7 @@ A reported blocker or out-of-scope target is a complete accounting result, not a
 The command fails if the explicit recipe registry no longer covers the ledger exactly or if a declared check contradicts the tracked evidence.
 
 This is the small, repository-only entry point for reviewing the whole paper.
-The longer GPU workflow in `REPRODUCING.md` remains the manual path for regenerating upstream compiled artifacts from downloaded raw inputs.
+The longer GPU workflow in [REPRODUCING.md](REPRODUCING.md) remains the manual path for regenerating upstream compiled artifacts from downloaded raw inputs.
 
 ## Run the supported upstream reproduction
 
@@ -151,7 +151,7 @@ The tracked notebook files retain historical embedded outputs; the current outpu
 
 ## Agent workflow
 
-1. Read this file, the relevant section of `paper.md`, and the existing top-level `REPRODUCING.md`.
+1. Read this file, the relevant section of `paper.md`, and `REPRODUCING.md`.
 2. Select one `pending` row from `targets.tsv`, or audit a completed row and its evidence when no pending rows remain.
 3. Reuse existing outputs and prior verification evidence before launching expensive workflows.
 4. Identify the smallest notebook, script, table, or verifier that can test the target.
@@ -204,6 +204,6 @@ rg '^FIG-3' paper/targets.tsv
 
 ## Existing reproduction baseline
 
-The top-level `REPRODUCING.md` and `verification/compiled_results.py` already provide substantial evidence.
+`REPRODUCING.md` and `verification/compiled_results.py` already provide substantial evidence.
 They establish exact classifier key and row contracts, bit-exact core ToxCast metrics, close POD agreement with expected model-selection drift, and stable enrichment definitions with diagnostic hit-list and FDR deviations.
 Use that evidence to resolve paper targets before repeating the multi-hour computation.

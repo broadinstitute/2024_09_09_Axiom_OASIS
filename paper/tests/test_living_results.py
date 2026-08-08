@@ -7,7 +7,7 @@ import json
 import unittest
 from pathlib import Path
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 NOTEBOOK_PATH = REPOSITORY_ROOT / "paper/living_results.py"
 SESSION_PATH = REPOSITORY_ROOT / "paper/__marimo__/session/living_results.py.json"
 MARIMO_AVAILABLE = importlib.util.find_spec("marimo") is not None

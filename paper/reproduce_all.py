@@ -761,7 +761,7 @@ def build_command_plan(paths: RunPaths, cores: int, head: str) -> dict[str, list
             "pipeline",
             "python",
             "-m",
-            "verification.compiled_results",
+            "paper.verification.compiled_results",
             "--reference",
             os.fspath(paths.reference),
             "--candidate",
@@ -845,7 +845,7 @@ def _initial_manifest(
         "candidate": {
             "root": "workspace",
             "compiled_results": "workspace/2_downstream_analysis/compiled_results",
-            "acceptance": "verification.compiled_results against reference/compiled_results",
+            "acceptance": "paper.verification.compiled_results against reference/compiled_results",
             "tracked_audit": "Runs separately against a pristine extraction of the Git archive.",
             "future_seam": (
                 "paper/reproduce.py is tracked-only today; a future regenerated mode must accept an explicit "
@@ -1479,7 +1479,7 @@ def _update_generated_inventory(context: RunContext, stage_id: str) -> None:
     if stage_id.startswith("snakemake-"):
         config_id = stage_id.removeprefix("snakemake-")
         config = next(item for item in CORE_CONFIGS if item.config == config_id)
-        config_inventory.append((config, "core candidate", "verification.compiled_results"))
+        config_inventory.append((config, "core candidate", "paper.verification.compiled_results"))
     elif stage_id == "sensitivity-configs":
         config_inventory.append((FILTERED_CONFIG, "current filtered comparison", None))
         config_inventory.extend((config, "current sensitivity", None) for config in SENSITIVITY_CONFIGS)

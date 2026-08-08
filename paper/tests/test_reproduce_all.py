@@ -528,7 +528,7 @@ class PlanAndManifestTest(unittest.TestCase):
             ("motive_highexp_PHH.parquet", "SI_tables/readme.txt"),
         )
         verifier = plan["semantic-verifier"][0]
-        self.assertIn("verification.compiled_results", verifier)
+        self.assertIn("paper.verification.compiled_results", verifier)
         self.assertIn(str(paths.reference), verifier)
         self.assertNotIn("paper.reproduce", verifier)
         figure_s1 = plan["figure-s1"][0]

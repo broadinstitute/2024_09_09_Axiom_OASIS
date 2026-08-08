@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 
-from verification import compiled_results as verifier
+from paper.verification import compiled_results as verifier
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
