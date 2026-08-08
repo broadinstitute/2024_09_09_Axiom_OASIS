@@ -6,6 +6,7 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import importlib
+import importlib.util
 import io
 import json
 import tarfile
@@ -559,6 +560,23 @@ class PlanAndManifestTest(unittest.TestCase):
         assigned_modules = set().union(*PAPER_TEST_MODULES_BY_ENVIRONMENT.values())
         self.assertEqual(observed_modules, assigned_modules)
         self.assertFalse(PAPER_TEST_MODULES_BY_ENVIRONMENT["pipeline"] & PAPER_TEST_MODULES_BY_ENVIRONMENT["notebooks"])
+
+        readme_lines = (test_directory.parent / "README.md").read_text(encoding="utf-8").splitlines()
+        documented_modules_by_environment: dict[str, frozenset[str]] = {}
+        for line_index, line in enumerate(readme_lines):
+            if not line.startswith("pixi run -e ") or not line.endswith("python -m unittest \\"):
+                continue
+            environment = line.split()[3]
+            modules: set[str] = set()
+            for module_line in readme_lines[line_index + 1 :]:
+                module = module_line.strip().removesuffix("\\").strip()
+                if not module.startswith("paper.tests.test_"):
+                    break
+                modules.add(module.rsplit(".", maxsplit=1)[-1])
+                if not module_line.endswith("\\"):
+                    break
+            documented_modules_by_environment[environment] = frozenset(modules)
+        self.assertEqual(documented_modules_by_environment, PAPER_TEST_MODULES_BY_ENVIRONMENT)
 
     def test_extended_stage_order_is_coarse_and_dependency_safe(self) -> None:
         self.assertLess(
