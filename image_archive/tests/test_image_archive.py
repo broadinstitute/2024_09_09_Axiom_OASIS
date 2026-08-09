@@ -37,7 +37,7 @@ from image_archive.state import ArchiveState, ManifestIdentity
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 OASIS_CONTRACT = REPO_ROOT / "image_archive" / "axiom" / "source.toml"
-OASIS_RECEIPT = REPO_ROOT / "image_archive" / "axiom" / "run-receipt-2026-08-05.toml"
+OASIS_RECEIPT = REPO_ROOT / "image_archive" / "records" / "run-receipt-2026-08-05.toml"
 CONTRACT_SHA256 = "a85639eb25908bdf900a67daeba8fc8a755db4c03841d21aff3fed9609d197dd"
 RECEIPT_SHA256 = "d4af5e083b90a50a2a891ad1a068cd54510f6da274801388fd81bb1cffba4e99"
 BUCKET = "fixture-bucket"

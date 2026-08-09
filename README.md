@@ -15,13 +15,13 @@ This repository contains the Axiom OASIS analysis, its paper reproduction record
 Run `uv run paper/reproduce.py` for the repository-only executable paper.
 Run `uv run paper/reproduce_all.py` for the isolated, resumable end-to-end reproduction, or add `--dry-run` to inspect its exact plan first.
 See [paper/README.md](paper/README.md) for the paper evidence workflow and [paper/REPRODUCING.md](paper/REPRODUCING.md) for the manual from-scratch recipe, acceptance boundaries, and known deviations.
-See [image_archive/axiom/README.md](image_archive/axiom/README.md) for the restartable JPEG XL archive workflow and completed-run evidence.
+See [image_archive/README.md](image_archive/README.md) for the restartable JPEG XL archive workflow and completed-run evidence.
 
 The data-preparation notes below describe the original analysis workflow.
 Some original scripts do not run as published; `paper/REPRODUCING.md` identifies the repairs and remaining boundaries.
 
 Tests live with the pipeline, paper, or archive subsystem they exercise.
-The locked pipeline and paper test commands are in [paper/README.md](paper/README.md), and the archive test command is in [image_archive/axiom/README.md](image_archive/axiom/README.md).
+The locked pipeline and paper test commands are in [paper/README.md](paper/README.md), and the archive test command is in [image_archive/README.md](image_archive/README.md).
 
 Scripts for downloading and preparing the data are included in the `0_prepare_data` folder.
 The main analysis is in the 1_snakemake folder, and exploratory notebooks for visualizing results and comparing across pipeline variations are in the 2_downstream_analysis folder.

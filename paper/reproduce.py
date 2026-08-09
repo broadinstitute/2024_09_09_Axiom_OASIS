@@ -671,7 +671,7 @@ def _analyze_sources_design(root: Path) -> dict[str, object]:
                 "uv run paper/reproduce.py",
                 "uv run paper/reproduce_all.py",
                 "paper/REPRODUCING.md",
-                "image_archive/axiom/README.md",
+                "image_archive/README.md",
             )
         ),
         "table_key_resources": len(key_resource_rows) - 1 == 34,
