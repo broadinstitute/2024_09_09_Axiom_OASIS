@@ -47,11 +47,6 @@ class SourceContract:
     prefix: str
     anonymous: bool
 
-    @property
-    def uri_prefix(self) -> str:
-        """Return the absolute S3 URI prefix."""
-        return f"s3://{self.bucket}/{self.prefix}/"
-
 
 @dataclass(frozen=True, slots=True)
 class InventoryContract:
@@ -90,16 +85,6 @@ class DestinationContract:
 
     root: Path
     object_template: str
-
-    def relative_path(self, *, codec_id: str, batch: str, plate: str, stem: str) -> Path:
-        """Render one safe relative output path."""
-        values = {"codec_id": codec_id, "batch": batch, "plate": plate, "stem": stem}
-        if any(not _safe_component(value) for value in values.values()):
-            raise ContractError("destination identifiers must be safe path components")
-        relative = Path(self.object_template.format(**values))
-        if relative.is_absolute() or ".." in relative.parts or relative.suffix != ".jxl":
-            raise ContractError("destination template produced an unsafe JPEG XL path")
-        return relative
 
 
 @dataclass(frozen=True, slots=True)
@@ -241,7 +226,9 @@ def _validate_template(destination: DestinationContract) -> None:
         raise ContractError(
             "destination template must contain codec_id, batch, plate, and stem exactly once",
         )
-    destination.relative_path(codec_id="codec", batch="batch", plate="plate", stem="image")
+    rendered = Path(destination.object_template.format(codec_id="codec", batch="batch", plate="plate", stem="image"))
+    if rendered.is_absolute() or ".." in rendered.parts or rendered.suffix != ".jxl":
+        raise ContractError("destination template produced an unsafe JPEG XL path")
 
 
 def load_contract(path: Path) -> Contract:  # noqa: C901
@@ -381,15 +368,3 @@ def load_contract(path: Path) -> Contract:  # noqa: C901
         raise ContractError("inventory.channel_count differs from the channel mapping")
 
     return Contract(index, source, inventory, codec, destination, batches, channels)
-
-
-__all__ = [
-    "CodecContract",
-    "Contract",
-    "ContractError",
-    "DestinationContract",
-    "IndexContract",
-    "InventoryContract",
-    "SourceContract",
-    "load_contract",
-]

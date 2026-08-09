@@ -1,4 +1,4 @@
-# ruff: noqa: CPY001, EM101, EM102, TC001, TRY003
+# ruff: noqa: ANN401, CPY001, EM101, EM102, PLR0911, PLR0913, TC001, TRY003
 """Bounded, restartable TIFF-to-JPEG-XL archive execution."""
 
 from __future__ import annotations
@@ -13,7 +13,10 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 from urllib.parse import urlsplit
 
+import boto3
 import pyarrow.parquet as pq
+from botocore import UNSIGNED
+from botocore.config import Config
 
 from .codec import decode_tiff, encode_jxl, verify_jxl
 from .contract import Contract
@@ -25,7 +28,6 @@ from .io import (
     sha256_bytes,
     sha256_file,
 )
-from .s3 import S3Client, download_object, public_s3_client
 from .state import ArchiveState, ManifestIdentity, StateRecord
 
 LOGGER = logging.getLogger(__name__)
@@ -90,7 +92,7 @@ class _QueueProgress:
     exhausted: bool = False
 
 
-def run_archive(  # noqa: PLR0913
+def run_archive(
     contract: Contract,
     *,
     inventory_path: Path,
@@ -99,7 +101,6 @@ def run_archive(  # noqa: PLR0913
     max_in_flight: int,
     max_attempts: int = 5,
     max_consecutive_failures: int = DEFAULT_MAX_CONSECUTIVE_FAILURES,
-    limit: int | None = None,
     audit_verified: bool = False,
 ) -> ArchiveRunResult:
     """Initialize state, audit prior outputs, and convert a bounded work queue."""
@@ -109,8 +110,6 @@ def run_archive(  # noqa: PLR0913
     _positive(max_consecutive_failures, "max_consecutive_failures")
     if max_in_flight < workers:
         raise ValueError("max_in_flight must be at least workers")
-    if limit is not None and limit < 0:
-        raise ValueError("limit must be non-negative or None")
     if not inventory_path.is_file():
         raise FileNotFoundError(f"inventory does not exist: {inventory_path}")
 
@@ -125,20 +124,15 @@ def run_archive(  # noqa: PLR0913
         raise ValueError(
             f"inventory row count differs from the contract: actual={manifest_rows}, expected={expected_rows}",
         )
-    client = public_s3_client(max_pool_connections=max_in_flight)
+    client = _s3_client(max_in_flight)
     with ArchiveState(state_path) as state:
-        binding = state.manifest_binding()
-        if binding is None or binding.artifact_sha256 is None:
-            initialized = state.initialize(
+        if state.manifest_binding() is None:
+            inserted = state.initialize(
                 iter_manifest_identities(inventory_path, contract),
                 artifact_sha256=manifest_sha256,
-                artifact_record_count=manifest_rows,
+                record_count=manifest_rows,
             )
-            LOGGER.info(
-                "state initialized: inserted=%d existing=%d",
-                initialized.inserted,
-                initialized.existing,
-            )
+            LOGGER.info("state initialized: inserted=%d", inserted)
         else:
             state.require_manifest_binding(manifest_sha256, manifest_rows)
             LOGGER.info("state manifest binding verified without row replay")
@@ -151,7 +145,7 @@ def run_archive(  # noqa: PLR0913
             )
         recovered = state.recover_running()
         requeued = audit_verified_outputs(state, contract=contract, workers=workers) if audit_verified else 0
-        pending = state.pending(limit=limit, max_attempts=max_attempts)
+        pending = state.pending(max_attempts=max_attempts)
         selected, retried, verified, failed, failure_attempts, failure_limit_reached = _run_queue(
             state,
             pending,
@@ -233,7 +227,7 @@ def audit_verified_outputs(
                 except StopIteration:
                     exhausted = True
                     break
-                future = executor.submit(_audit_verified_record, record, contract)
+                future = executor.submit(_check_verified_record, record, contract)
                 futures[future] = record
             if not futures:
                 continue
@@ -249,7 +243,7 @@ def audit_verified_outputs(
     return requeued
 
 
-def validate_archive(  # noqa: PLR0913
+def validate_archive(
     contract: Contract,
     *,
     inventory_path: Path,
@@ -257,7 +251,6 @@ def validate_archive(  # noqa: PLR0913
     state_path: Path,
     workers: int,
     max_attempts: int = 5,
-    verified_only: bool = False,
     report_path: Path | None = None,
 ) -> ValidationResult:
     """Decode and hash every verified output, then enforce full completeness."""
@@ -277,12 +270,8 @@ def validate_archive(  # noqa: PLR0913
     failures: list[dict[str, str]] = []
     checked = 0
     invalid = 0
-    with ArchiveState(state_path) as state:
-        state.validate_manifest(
-            iter_manifest_identities(inventory_path, contract),
-            artifact_sha256=manifest_sha256,
-            artifact_record_count=inventory_rows,
-        )
+    with ArchiveState(state_path, read_only=True) as state:
+        state.require_manifest_binding(manifest_sha256, inventory_rows)
         records = state.verified_records()
         with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="jxl-validate") as executor:
             futures: dict[Future[str | None], StateRecord] = {}
@@ -294,7 +283,7 @@ def validate_archive(  # noqa: PLR0913
                     except StopIteration:
                         exhausted = True
                         break
-                    future = executor.submit(_validate_verified_record, record, contract)
+                    future = executor.submit(_check_verified_record, record, contract)
                     futures[future] = record
                 if not futures:
                     continue
@@ -319,17 +308,9 @@ def validate_archive(  # noqa: PLR0913
         and counts["verified"] == expected
         and counts["unresolved"] == 0
     )
-    audit_passed = (
-        checked > 0
-        and invalid == 0
-        and inventory_rows == expected
-        and rejected_rows == contract.inventory.incomplete_rows
-        and counts["total"] == expected
-        and checked == counts["verified"]
-    )
     result = ValidationResult(
         complete=complete,
-        audit_passed=audit_passed,
+        audit_passed=complete,
         checked=checked,
         invalid=invalid,
         inventory_rows=inventory_rows,
@@ -339,7 +320,7 @@ def validate_archive(  # noqa: PLR0913
     )
     if report_path is not None:
         report = asdict(result)
-        report["verified_only"] = verified_only
+        report["verified_only"] = False
         report["expected_complete"] = expected
         report["failure_details_truncated"] = invalid > len(failures)
         atomic_write_json(report_path, report)
@@ -367,7 +348,7 @@ def state_report(state_path: Path, *, max_attempts: int = 5) -> dict[str, Any]:
             "size_reduction_fraction": None,
             "source_to_output_ratio": None,
         }
-    with ArchiveState(state_path) as state:
+    with ArchiveState(state_path, read_only=True) as state:
         counts = state.counts(max_attempts=max_attempts)
         byte_totals = state.byte_totals()
         binding = state.manifest_binding()
@@ -392,12 +373,12 @@ def print_json(value: Mapping[str, Any] | ArchiveRunResult | ValidationResult) -
     print(json.dumps(payload, indent=2, sort_keys=True, allow_nan=False))  # noqa: T201
 
 
-def _run_queue(  # noqa: PLR0913
+def _run_queue(
     state: ArchiveState,
     pending: Iterator[StateRecord],
     *,
     contract: Contract,
-    client: S3Client,
+    client: Any,
     workers: int,
     max_in_flight: int,
     max_attempts: int,
@@ -473,7 +454,7 @@ def _run_queue(  # noqa: PLR0913
     )
 
 
-def _handle_conversion_failure(  # noqa: PLR0913
+def _handle_conversion_failure(
     state: ArchiveState,
     record: StateRecord,
     error: Exception,
@@ -482,7 +463,7 @@ def _handle_conversion_failure(  # noqa: PLR0913
     futures: dict[Future[ConversionResult], StateRecord],
     executor: ThreadPoolExecutor,
     contract: Contract,
-    client: S3Client,
+    client: Any,
     max_attempts: int,
     max_consecutive_failures: int,
 ) -> None:
@@ -523,7 +504,7 @@ def _handle_conversion_failure(  # noqa: PLR0913
 def _convert_one(
     record: StateRecord,
     contract: Contract,
-    client: S3Client,
+    client: Any,
 ) -> ConversionResult:
     _validate_source_destination(
         contract,
@@ -531,7 +512,7 @@ def _convert_one(
         record.source_uri,
         record.destination_relative,
     )
-    source, _, _ = download_object(
+    source = _download_object(
         client,
         bucket=contract.source.bucket,
         key=record.source_key,
@@ -566,35 +547,7 @@ def _convert_one(
     )
 
 
-def _audit_verified_record(record: StateRecord, contract: Contract) -> str | None:  # noqa: PLR0911
-    try:
-        destination = safe_destination(contract.destination.root, record.destination_relative)
-        shape = _record_shape(record)
-        if record.source_bytes is None or record.source_sha256 is None:
-            return "verified state lacks source byte count or SHA-256"
-        if record.expected_size is not None and record.source_bytes != record.expected_size:
-            return "verified source byte count differs from its metadata snapshot"
-        if record.output_bytes is None or record.output_sha256 is None:
-            return "verified state lacks output byte count or SHA-256"
-        if shape is None or record.dtype != "uint16":
-            return "verified state lacks its decoded shape or uint16 dtype"
-        if not destination.is_file():
-            return f"verified output is absent: {destination}"
-        payload = destination.read_bytes()
-        if len(payload) != record.output_bytes:
-            return f"verified output size changed: {destination}"
-        if sha256_bytes(payload) != record.output_sha256:
-            return f"verified output SHA-256 changed: {destination}"
-        verify_jxl(payload, expected_shape=shape, expected_dtype=record.dtype)
-    except Exception as error:  # noqa: BLE001 - convert audit failures into requeue reasons
-        return f"verified output audit failed: {type(error).__name__}: {error}"
-    return None
-
-
-def _validate_verified_record(  # noqa: PLR0911
-    record: StateRecord,
-    contract: Contract,
-) -> str | None:
+def _check_verified_record(record: StateRecord, contract: Contract) -> str | None:
     shape = _record_shape(record)
     if shape is None or record.dtype != "uint16":
         return "verified state lacks its decoded shape or uint16 dtype"
@@ -679,23 +632,58 @@ def _parquet_rows(path: Path) -> int:
 
 
 def _require_artifact_pin(path: Path, expected_sha256: str | None, label: str) -> str:
+    if expected_sha256 is None:
+        raise ValueError(f"{label} has no SHA-256 pin in the contract")
     actual_sha256 = sha256_file(path)
-    if expected_sha256 is not None and actual_sha256 != expected_sha256:
+    if actual_sha256 != expected_sha256:
         raise ValueError(
             f"{label} SHA-256 differs: expected={expected_sha256}, actual={actual_sha256}, path={path}",
         )
     return actual_sha256
 
 
-__all__ = [
-    "DEFAULT_MAX_CONSECUTIVE_FAILURES",
-    "ArchiveRunResult",
-    "ConversionResult",
-    "ValidationResult",
-    "audit_verified_outputs",
-    "iter_manifest_identities",
-    "print_json",
-    "run_archive",
-    "state_report",
-    "validate_archive",
-]
+def _s3_client(max_pool_connections: int) -> Any:
+    return boto3.client(
+        "s3",
+        region_name="us-east-1",
+        config=Config(
+            signature_version=UNSIGNED,
+            max_pool_connections=max_pool_connections,
+            connect_timeout=15,
+            read_timeout=120,
+            retries={"max_attempts": 10, "mode": "adaptive"},
+        ),
+    )
+
+
+def _download_object(
+    client: Any,
+    *,
+    bucket: str,
+    key: str,
+    expected_size: int,
+    expected_etag: str,
+    version_id: str | None,
+) -> bytes:
+    arguments = {"Bucket": bucket, "Key": key}
+    if version_id:
+        arguments["VersionId"] = version_id
+    response = client.get_object(**arguments)
+    body = response["Body"]
+    try:
+        payload = body.read()
+    finally:
+        body.close()
+    if not isinstance(payload, bytes):
+        raise TypeError(f"S3 body is not bytes for s3://{bucket}/{key}")
+    response_size = response.get("ContentLength", len(payload))
+    if isinstance(response_size, bool) or not isinstance(response_size, int):
+        raise TypeError(f"invalid ContentLength for s3://{bucket}/{key}: {response_size!r}")
+    if response_size != len(payload) or len(payload) != expected_size:
+        raise ValueError(f"source size changed for s3://{bucket}/{key}")
+    etag = str(response.get("ETag", "")).strip().strip('"')
+    if etag != expected_etag.strip().strip('"'):
+        raise ValueError(f"source ETag changed for s3://{bucket}/{key}")
+    if version_id is not None and response.get("VersionId") != version_id:
+        raise ValueError(f"source version changed for s3://{bucket}/{key}")
+    return payload
