@@ -16,7 +16,7 @@ Each complete source TIFF becomes one standard `.jxl` object at:
   jpegxl-d1-e5/<batch>/images/<plate>/<stem>.jxl
 ```
 
-The completed Spirit v1 run is frozen in `image_archive/axiom/run-receipt-2026-08-05.toml`.
+The completed Spirit v1 run is frozen in `image_archive/records/run-receipt-2026-08-05.toml`.
 That machine-readable receipt binds the exact source and manifest identities, codec runtime, two conversion phases, a deterministically specified ledger evidence digest and totals, and the external validation report without copying generated image data into Git.
 
 No channel stacking, normalization, intensity transformation, cropping, resizing, or biological recalibration is performed.
@@ -46,13 +46,14 @@ Run the archive tests from the repository root:
 direnv exec . pixi run -e images python -m unittest discover -s image_archive/tests
 ```
 
-## Reuse
+## Ownership
 
-The runtime modules in `image_archive/` are the dataset-agnostic tool; `image_archive/axiom/` is one worked instance of it.
-The focused test suite runs the whole workflow on a tiny non-OASIS fixture and checks the immutable OASIS record.
-For another dataset with the same six-column Axiom index schema, create a sibling directory such as `image_archive/<dataset>/`, copy `source.toml` into it, and change the index identity, S3 namespace, expected counts, batches, channels, codec settings, destination root, and object template.
-Run `inventory` to build the canonical manifest, record its inventory and rejected-row SHA-256 values in the contract, and then run `archive`.
-The conversion engine consumes only the canonical manifest columns and the contract, so image dimensions and dataset names are not compiled into the runtime.
+The reusable Axiom-style engine is the Python package in `image_archive/`.
+The concrete dataset contract is `image_archive/axiom/source.toml`, the host deployment is in `image_archive/deploy/`, the immutable completed-run record is in `image_archive/records/`, and the focused test suite is in `image_archive/tests/`.
+The engine consumes the canonical manifest columns and the contract; image dimensions and dataset names are not compiled into the runtime.
+
+Generated state is external to Git under the contracted destination.
+`_archive/` owns the inventory, rejected rows, remote reconciliation, schema-v4 ledger, progress, and validation report; `jpegxl-d1-e5/` owns the generated JPEG XL objects; and `.oasis-images.lock` coordinates every mutating workflow.
 
 ## Workflow
 
@@ -98,7 +99,7 @@ For an unattended full build, install the tracked user service from the canonica
 ```bash
 mkdir -p ~/.config/systemd/user
 ln -sfn \
-  /work/users/shsingh/GitHub/oasis/2024_09_09_Axiom_OASIS/image_archive/axiom/oasis-axiom-jpegxl.service \
+  /work/users/shsingh/GitHub/oasis/2024_09_09_Axiom_OASIS/image_archive/deploy/oasis-axiom-jpegxl.service \
   ~/.config/systemd/user/oasis-axiom-jpegxl.service
 systemctl --user daemon-reload
 systemctl --user enable --now oasis-axiom-jpegxl.service
