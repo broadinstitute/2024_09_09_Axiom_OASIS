@@ -1,5 +1,5 @@
 # Copyright (c) 2026 Broad Institute.
-# ruff: noqa: D101, D102, PT009, PT027
+# ruff: noqa: D101, D102, PT009, PT027, SLF001
 """Regression tests for deterministic, read-only receipt verification."""
 
 from __future__ import annotations
@@ -15,6 +15,9 @@ from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 
+import tomllib
+
+from image_archive import receipt as receipt_module
 from image_archive.__main__ import main
 from image_archive.archive import iter_manifest_identities, run_archive, validate_archive
 from image_archive.io import exclusive_workflow_lock, sha256_file
@@ -294,14 +297,31 @@ def _snapshot(root: Path) -> dict[str, tuple[int, str]]:
     }
 
 
+def _synthetic_anchor(receipt_path: Path) -> str:
+    return receipt_module._receipt_projection_sha256(tomllib.loads(receipt_path.read_text()))
+
+
 class ReceiptVerificationTest(unittest.TestCase):
+    def test_historical_receipt_matches_the_production_anchor(self) -> None:
+        receipt_path = Path(__file__).resolve().parents[1] / "records" / "run-receipt-2026-08-05.toml"
+
+        self.assertEqual(
+            _synthetic_anchor(receipt_path),
+            receipt_module._HISTORICAL_RECEIPT_PROJECTION_SHA256,
+        )
+
     def test_success_is_deterministic_and_changes_no_files(self) -> None:
         with TemporaryDirectory() as directory:
             root = Path(directory)
             _, contract_path, receipt_path = _completed_fixture(root)
             before = _snapshot(root)
 
-            result = verify_receipt(contract_path, receipt_path)
+            with patch.object(
+                receipt_module,
+                "_HISTORICAL_RECEIPT_PROJECTION_SHA256",
+                _synthetic_anchor(receipt_path),
+            ):
+                result = verify_receipt(contract_path, receipt_path)
 
             self.assertTrue(result["matches"])
             self.assertEqual(result["mismatches"], [])
@@ -338,7 +358,14 @@ class ReceiptVerificationTest(unittest.TestCase):
                 connection.execute("PRAGMA wal_checkpoint(TRUNCATE)")
             stdout = io.StringIO()
 
-            with redirect_stdout(stdout):
+            with (
+                patch.object(
+                    receipt_module,
+                    "_HISTORICAL_RECEIPT_PROJECTION_SHA256",
+                    _synthetic_anchor(receipt_path),
+                ),
+                redirect_stdout(stdout),
+            ):
                 status = main(
                     [
                         "verify-receipt",
@@ -371,6 +398,7 @@ class ReceiptVerificationTest(unittest.TestCase):
         with TemporaryDirectory() as directory:
             root = Path(directory)
             _, contract_path, receipt_path = _completed_fixture(root)
+            anchor = _synthetic_anchor(receipt_path)
             text = receipt_path.read_text()
             text = text.replace('host = "historical-host"', 'host = "another-host"')
             text = text.replace("1900-01-01T00:00:00Z", "2099-01-01T00:00:00Z")
@@ -391,7 +419,8 @@ class ReceiptVerificationTest(unittest.TestCase):
             text = text.replace("1900-01-03T00:00:00Z", "2099-01-03T00:00:00Z")
             receipt_path.write_text(text, encoding="utf-8")
 
-            result = verify_receipt(contract_path, receipt_path)
+            with patch.object(receipt_module, "_HISTORICAL_RECEIPT_PROJECTION_SHA256", anchor):
+                result = verify_receipt(contract_path, receipt_path)
 
             self.assertTrue(result["matches"])
             self.assertEqual(result["historical_context"]["host"], "another-host")
@@ -403,10 +432,73 @@ class ReceiptVerificationTest(unittest.TestCase):
             lock_path = contract.destination.root / ".oasis-images.lock"
 
             with (
+                patch.object(
+                    receipt_module,
+                    "_HISTORICAL_RECEIPT_PROJECTION_SHA256",
+                    _synthetic_anchor(receipt_path),
+                ),
                 exclusive_workflow_lock(lock_path, "archive"),
                 self.assertRaisesRegex(RuntimeError, "already held"),
             ):
                 verify_receipt(contract_path, receipt_path)
+
+    def test_receipt_anchor_rejects_matching_deterministic_tampering(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            contract, contract_path, receipt_path = _completed_fixture(root)
+            work_dir = contract.destination.root / "_archive"
+            report_path = work_dir / "validation.json"
+            report = json.loads(report_path.read_text())
+            report["complete"] = False
+            report_path.write_text(f"{json.dumps(report, indent=2, sort_keys=True)}\n", encoding="utf-8")
+            _write_receipt(receipt_path, contract_path, contract, work_dir)
+            receipt = tomllib.loads(receipt_path.read_text())
+
+            self.assertFalse(report["complete"])
+            self.assertFalse(receipt["validation"]["result"]["complete"])
+            self.assertEqual(receipt["validation"]["report"]["sha256"], sha256_file(report_path))
+            with (
+                patch(
+                    "image_archive.receipt.read_only_workflow_lock",
+                    side_effect=AssertionError("archive artifacts were resolved"),
+                ),
+                self.assertRaisesRegex(ValueError, "historical receipt deterministic projection differs"),
+            ):
+                verify_receipt(contract_path, receipt_path)
+
+    def test_refuses_nonempty_committed_wal_before_immutable_read(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            contract, contract_path, receipt_path = _completed_fixture(root)
+            state_path = contract.destination.root / "_archive" / "state.sqlite3"
+            wal_path = Path(f"{state_path}-wal")
+            with sqlite3.connect(state_path) as writer:
+                writer.execute("PRAGMA wal_autocheckpoint = 0")
+                original = int(writer.execute("SELECT output_bytes FROM archive_records").fetchone()[0])
+                writer.execute("UPDATE archive_records SET output_bytes = ?", (original + 1,))
+                writer.commit()
+
+                immutable = sqlite3.connect(f"{state_path.resolve().as_uri()}?mode=ro&immutable=1", uri=True)
+                try:
+                    stale = int(immutable.execute("SELECT output_bytes FROM archive_records").fetchone()[0])
+                finally:
+                    immutable.close()
+                self.assertEqual(stale, original)
+                self.assertEqual(
+                    int(writer.execute("SELECT output_bytes FROM archive_records").fetchone()[0]),
+                    original + 1,
+                )
+                self.assertGreater(wal_path.stat().st_size, 0)
+
+                with (
+                    patch.object(
+                        receipt_module,
+                        "_HISTORICAL_RECEIPT_PROJECTION_SHA256",
+                        _synthetic_anchor(receipt_path),
+                    ),
+                    self.assertRaisesRegex(RuntimeError, "archive ledger WAL is nonempty"),
+                ):
+                    verify_receipt(contract_path, receipt_path)
 
 
 if __name__ == "__main__":

@@ -43,6 +43,27 @@ _EVIDENCE_SQL: Final = (
     "source_bytes, output_bytes, shape, dtype FROM archive_records ORDER BY source_key ASC"
 )
 _FINAL_COUNT_FIELDS: Final = ("total", "verified", "pending", "running", "error", "unresolved")
+_INDEX_FIELDS: Final = ("record_id", "filename", "url", "size_bytes", "md5", "sha256")
+_MANIFEST_EXPECTATION_FIELDS: Final = (
+    "inventory_sha256",
+    "identity_sha256",
+    "complete_unique_tiff_uris",
+    "rejected_sha256",
+    "rejected_rows",
+)
+_LEDGER_EXPECTATION_FIELDS: Final = (
+    "schema_version",
+    "record_count",
+    "evidence_sha256_scope",
+    "evidence_sha256_order",
+    "evidence_sha256_fields",
+    "evidence_sql",
+    "evidence_row_serialization",
+    "evidence_value_types",
+    "evidence_encoding",
+    "evidence_line_terminator",
+    "evidence_sha256",
+)
 _VALIDATION_FIELDS: Final = (
     "audit_passed",
     "complete",
@@ -53,6 +74,7 @@ _VALIDATION_FIELDS: Final = (
     "inventory_rows",
     "rejected_rows",
 )
+_HISTORICAL_RECEIPT_PROJECTION_SHA256: Final = "2ce25b61ecee83fc8fe436c711019712679ec1c25abc2e1d2f877687e6846ef1"
 
 
 def verify_receipt(contract_path: Path, receipt_path: Path) -> dict[str, Any]:
@@ -65,6 +87,7 @@ def verify_receipt(contract_path: Path, receipt_path: Path) -> dict[str, Any]:
         raise FileNotFoundError(f"receipt does not exist: {receipt_path}")
 
     receipt = _load_receipt(receipt_path)
+    _require_historical_receipt(receipt)
     contract_sha256 = sha256_file(contract_path)
     contract = load_contract(contract_path)
     mismatches: list[str] = []
@@ -75,7 +98,7 @@ def verify_receipt(contract_path: Path, receipt_path: Path) -> dict[str, Any]:
         _compare(mismatches, "receipt ID", receipt_id, "non-empty text")
     _compare(mismatches, "contract SHA-256", contract_sha256, receipt.get("contract_sha256"))
     index = _table(receipt, "index")
-    for field in ("record_id", "filename", "url", "size_bytes", "md5", "sha256"):
+    for field in _INDEX_FIELDS:
         _compare(mismatches, f"index {field}", getattr(contract.index, field), index.get(field))
 
     manifest = _table(receipt, "manifest")
@@ -93,6 +116,7 @@ def verify_receipt(contract_path: Path, receipt_path: Path) -> dict[str, Any]:
     lock_path = contract.destination.root / ".oasis-images.lock"
 
     with read_only_workflow_lock(lock_path):
+        _require_no_nonempty_wal(state_path)
         inventory_sha256 = sha256_file(inventory_path)
         rejected_sha256 = sha256_file(rejected_path)
         inventory_rows = _parquet_rows(inventory_path)
@@ -217,6 +241,50 @@ def _load_receipt(path: Path) -> dict[str, Any]:
         raise ValueError(f"cannot read receipt {path}: {error}") from error
 
 
+def _require_historical_receipt(receipt: Mapping[str, Any]) -> None:
+    actual = _receipt_projection_sha256(receipt)
+    if actual != _HISTORICAL_RECEIPT_PROJECTION_SHA256:
+        raise ValueError(
+            "historical receipt deterministic projection differs: "
+            f"expected={_HISTORICAL_RECEIPT_PROJECTION_SHA256}, actual={actual}",
+        )
+
+
+def _receipt_projection_sha256(receipt: Mapping[str, Any]) -> str:
+    projection = _receipt_projection(receipt)
+    payload = json.dumps(projection, ensure_ascii=True, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    return hashlib.sha256(payload.encode("ascii")).hexdigest()
+
+
+def _receipt_projection(receipt: Mapping[str, Any]) -> dict[str, Any]:
+    index = _table(receipt, "index")
+    manifest = _table(receipt, "manifest")
+    ledger = _table(receipt, "ledger")
+    conversion_result = _table(_table(receipt, "conversion"), "result")
+    validation = _table(receipt, "validation")
+    validation_result = _table(validation, "result")
+    validation_report = _table(validation, "report")
+    return {
+        "contract_sha256": receipt.get("contract_sha256"),
+        "index": {field: index.get(field) for field in _INDEX_FIELDS},
+        "manifest": {field: manifest.get(field) for field in _MANIFEST_EXPECTATION_FIELDS},
+        "ledger": {field: ledger.get(field) for field in _LEDGER_EXPECTATION_FIELDS},
+        "conversion_result": {
+            field: conversion_result.get(field) for field in (*_FINAL_COUNT_FIELDS, "source_bytes", "output_bytes")
+        },
+        "receipt_id": receipt.get("receipt_id"),
+        "schema_version": receipt.get("schema_version"),
+        "validation": {
+            "report_sha256": validation_report.get("sha256"),
+            "result": {
+                field: validation_result.get(field)
+                for field in (*_VALIDATION_FIELDS, "failure_count", *_FINAL_COUNT_FIELDS)
+            },
+            "verified_only": validation.get("verified_only"),
+        },
+    }
+
+
 def _load_json(path: Path) -> dict[str, Any]:
     try:
         value = json.loads(path.read_bytes())
@@ -273,6 +341,16 @@ def _open_immutable_ledger(path: Path) -> sqlite3.Connection:
         connection.close()
         raise
     return connection
+
+
+def _require_no_nonempty_wal(state_path: Path) -> None:
+    wal_path = Path(f"{state_path}-wal")
+    try:
+        size = wal_path.stat().st_size
+    except FileNotFoundError:
+        return
+    if size:
+        raise RuntimeError(f"archive ledger WAL is nonempty; refusing immutable read: path={wal_path}, size={size}")
 
 
 def _ledger_counts(connection: sqlite3.Connection) -> dict[str, int]:

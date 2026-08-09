@@ -91,18 +91,23 @@ test "$(direnv exec . findmnt -nro TARGET -T /work/datasets)" != "/"
 direnv exec . findmnt -T /work/datasets
 ```
 
-Create the exact destination with the operator's registered storage group, then verify writability and path resolution:
+The storage-policy group for this hierarchy is `nogroup`.
+Require that membership explicitly, create the exact destination, and verify its ownership, mode, writability, and path resolution:
 
 ```bash
 archive_root=/work/datasets/cpg0037-oasis/axiom/images-jxl/v1
-archive_group=$(id -gn)
+archive_group=nogroup
+id -nG | tr ' ' '\n' | grep -Fx "$archive_group"
 sudo install -d -o "$(id -un)" -g "$archive_group" -m 2770 "$archive_root"
 test -d "$archive_root"
 test -w "$archive_root"
+test "$(direnv exec . stat -c '%U:%G:%a' "$archive_root")" = "$(id -un):nogroup:2770"
+direnv exec . stat -c '%U:%G %a %n' "$archive_root"
 direnv exec . namei -l "$archive_root"
 ```
 
-Register this exact root in `/work/datasets/REGISTRY.yaml` using the schema and ownership fields of the adjacent `cpg0037-oasis` entry:
+Register this exact root in `/work/datasets/REGISTRY.yaml` with its existing `name`, `description`, `date_added`, and `owner` fields.
+The registry does not carry a group field; `nogroup` is enforced by filesystem ownership and membership:
 
 ```bash
 sudoedit /work/datasets/REGISTRY.yaml
@@ -235,8 +240,11 @@ direnv exec . pixi run -e images python -m image_archive verify-receipt \
   --receipt image_archive/records/run-receipt-2026-08-05.toml
 ```
 
-`verify-receipt` first checks the receipt schema, receipt ID, contract byte hash, and pinned index identity.
+`verify-receipt` first requires the receipt's deterministic projection to match the single historical production anchor, before it resolves the destination or any archive artifact.
+That projection binds every receipt value used as a reconstruction expectation while excluding host, timestamps, attempts, retries, service history, absolute paths, and mtimes.
+It then checks the receipt schema, receipt ID, contract byte hash, and pinned index identity.
 It then acquires the existing destination lock in shared nonblocking mode and refuses to run while `inventory`, `archive`, or `validate` holds the exclusive lock.
+While holding the shared lock, it also refuses any nonempty `state.sqlite3-wal` before opening the main database as immutable.
 It hashes the inventory, rejected rows, and validation report; checks Parquet row counts; recomputes the manifest identity; opens SQLite with `mode=ro`, `immutable=1`, and `PRAGMA query_only`; checks schema, record count, exact manifest binding, final counts, and byte totals; and streams the receipt-defined canonical ledger evidence digest.
 It does not create a directory or lock, recover or migrate a ledger, invoke another workflow, inspect or rewrite JPEG XL objects, or write a report.
 All deterministic mismatches are printed together and the command exits nonzero.
