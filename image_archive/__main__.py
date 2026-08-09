@@ -14,6 +14,7 @@ from .archive import DEFAULT_MAX_CONSECUTIVE_FAILURES, print_json, run_archive, 
 from .contract import Contract, load_contract
 from .inventory import build_inventory, require_remote_inventory
 from .io import atomic_write_json, ensure_group_directories, exclusive_workflow_lock
+from .receipt import verify_receipt
 
 DEFAULT_CONTRACT: Final = Path("image_archive/axiom/source.toml")
 METADATA_DIRECTORY: Final = "_archive"
@@ -69,6 +70,13 @@ def _parser() -> argparse.ArgumentParser:
     _add_contract_and_work_dir(validate)
     validate.add_argument("--workers", type=int, default=_default_workers())
     validate.add_argument("--max-attempts", type=int, default=5)
+
+    receipt = commands.add_parser(
+        "verify-receipt",
+        help="compare deterministic archive evidence with a historical receipt",
+    )
+    receipt.add_argument("--contract", type=Path, default=DEFAULT_CONTRACT)
+    receipt.add_argument("--receipt", type=Path, required=True)
     return parser
 
 
@@ -90,6 +98,8 @@ def main(arguments: list[str] | None = None) -> int:  # noqa: PLR0911
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
     try:
+        if parsed.command == "verify-receipt":
+            return _verify_receipt_command(parsed)
         contract = load_contract(parsed.contract)
         work_dir = parsed.work_dir or contract.destination.root / METADATA_DIRECTORY
         if parsed.command == "inventory":
@@ -214,6 +224,12 @@ def _validate_command(parsed: argparse.Namespace, contract: Contract, work_dir: 
         )
     print_json(result)
     return 0 if result.complete else 1
+
+
+def _verify_receipt_command(parsed: argparse.Namespace) -> int:
+    result = verify_receipt(parsed.contract, parsed.receipt)
+    print_json(result)
+    return 0 if result["matches"] else 1
 
 
 def _require_destination_storage(destination_root: Path) -> None:

@@ -51,6 +51,23 @@ def exclusive_workflow_lock(path: Path, operation: str) -> Iterator[None]:
             fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
 
 
+@contextmanager
+def read_only_workflow_lock(path: Path) -> Iterator[None]:
+    """Share an existing workflow lock without creating or changing it."""
+    if not path.is_file():
+        raise FileNotFoundError(f"archive workflow lock does not exist: {path}")
+    with path.open("r", encoding="utf-8") as stream:
+        try:
+            fcntl.flock(stream.fileno(), fcntl.LOCK_SH | fcntl.LOCK_NB)
+        except BlockingIOError as error:
+            holder = stream.read().strip() or "holder metadata unavailable"
+            raise RuntimeError(f"archive workflow lock is already held at {path}: {holder}") from error
+        try:
+            yield
+        finally:
+            fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
+
+
 def sha256_bytes(data: bytes) -> str:
     """Return the lowercase SHA-256 digest for in-memory bytes."""
     return hashlib.sha256(data).hexdigest()
