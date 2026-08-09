@@ -23,7 +23,7 @@ METADATA_DIRECTORY: Final = "_archive"
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m image_archive",
-        description="Build and verify a local JPEG XL image archive from a dataset contract.",
+        description="Run the canonical-manifest JPEG XL archive engine; Axiom is the default contract.",
     )
     parser.add_argument(
         "--log-level",
@@ -34,7 +34,7 @@ def _parser() -> argparse.ArgumentParser:
 
     inventory = commands.add_parser(
         "inventory",
-        help="verify the pinned index and optionally snapshot public S3 metadata",
+        help="run the Axiom-only index compiler and optional public S3 snapshot",
     )
     _add_contract_and_work_dir(inventory)
     inventory.add_argument("--index", type=Path, help="reuse an exact local copy of the pinned index")
@@ -73,15 +73,25 @@ def _parser() -> argparse.ArgumentParser:
 
     receipt = commands.add_parser(
         "verify-receipt",
-        help="compare deterministic archive evidence with a historical receipt",
+        help="verify the Axiom-only historical receipt",
     )
-    receipt.add_argument("--contract", type=Path, default=DEFAULT_CONTRACT)
+    receipt.add_argument(
+        "--contract",
+        type=Path,
+        default=DEFAULT_CONTRACT,
+        help="archive contract (default: Axiom OASIS)",
+    )
     receipt.add_argument("--receipt", type=Path, required=True)
     return parser
 
 
 def _add_contract_and_work_dir(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--contract", type=Path, default=DEFAULT_CONTRACT)
+    parser.add_argument(
+        "--contract",
+        type=Path,
+        default=DEFAULT_CONTRACT,
+        help="archive contract (default: Axiom OASIS)",
+    )
     parser.add_argument(
         "--work-dir",
         type=Path,

@@ -45,6 +45,8 @@ PREFIX = "demo-images"
 BATCH = "batch_demo"
 PLATE = "plate_00000042"
 CHANNEL = "Nuclei"
+DIRECT_SOURCE_KEY = f"{PREFIX}/vendor-flat/raw/acquisition-x/image-7.tif"
+DIRECT_DESTINATION_RELATIVE = "jpegxl-d1-e5/freeform/image-7.jxl"
 
 
 class _Body:
@@ -203,6 +205,66 @@ def _inventory(root: Path, rows: int = 1) -> tuple[Contract, Path, _S3]:
     return replace(contract, inventory=pinned), work_dir, client
 
 
+def _direct_manifest(root: Path) -> tuple[Contract, Path, _S3]:
+    contract, _, _ = _fixture(root)
+    work_dir = root / "archive" / "_archive"
+    work_dir.mkdir()
+    payload = _tiff(7)
+    client = _S3({DIRECT_SOURCE_KEY: payload})
+    inventory_path = work_dir / "inventory.parquet"
+    pl.DataFrame(
+        {
+            "source_key": [DIRECT_SOURCE_KEY],
+            "source_uri": [f"s3://{BUCKET}/{DIRECT_SOURCE_KEY}"],
+            "destination_relative": [DIRECT_DESTINATION_RELATIVE],
+            "source_size": [len(payload)],
+            "etag": [client.etags[DIRECT_SOURCE_KEY]],
+            "version_id": [None],
+        },
+        schema={
+            "source_key": pl.String,
+            "source_uri": pl.String,
+            "destination_relative": pl.String,
+            "source_size": pl.Int64,
+            "etag": pl.String,
+            "version_id": pl.String,
+        },
+    ).write_parquet(inventory_path, compression="zstd", statistics=True)
+    rejected_path = work_dir / "rejected.parquet"
+    pl.DataFrame(
+        {
+            "source_identifier": ["raw-row-without-uri"],
+            "reason": ["missing image URI"],
+        },
+        schema={"source_identifier": pl.String, "reason": pl.String},
+    ).write_parquet(rejected_path, compression="zstd", statistics=True)
+    (work_dir / "summary.json").write_text(
+        json.dumps(
+            {
+                "remote_snapshot": {
+                    "indexed_missing_count": 0,
+                    "prefix_extra_count": 0,
+                },
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+    )
+    return (
+        replace(
+            contract,
+            inventory=replace(
+                contract.inventory,
+                manifest_sha256=sha256_file(inventory_path),
+                rejected_sha256=sha256_file(rejected_path),
+            ),
+        ),
+        work_dir,
+        client,
+    )
+
+
 class ImageArchiveTest(unittest.TestCase):
     def test_missing_source_rerun_replaces_successful_preflight(self) -> None:
         with TemporaryDirectory() as directory:
@@ -225,13 +287,17 @@ class ImageArchiveTest(unittest.TestCase):
             summary = json.loads((work_dir / "summary.json").read_text())
             self.assertEqual(summary["remote_snapshot"]["indexed_missing_count"], 1)
 
-    def test_non_oasis_inventory_resume_report_validate_and_repair(self) -> None:
+    def test_direct_manifest_resume_status_validate_and_repair(self) -> None:
         with TemporaryDirectory() as directory:
             root = Path(directory)
-            contract, work_dir, client = _inventory(root)
+            contract, work_dir, client = _direct_manifest(root)
             inventory_path = work_dir / "inventory.parquet"
+            rejected_path = work_dir / "rejected.parquet"
             state_path = work_dir / "state.sqlite3"
             manifest = list(iter_manifest_identities(inventory_path, contract))
+            self.assertEqual(manifest[0].source_key, DIRECT_SOURCE_KEY)
+            self.assertEqual(manifest[0].destination_relative, DIRECT_DESTINATION_RELATIVE)
+            require_remote_inventory(contract, work_dir)
             with ArchiveState(state_path) as state:
                 state.initialize(
                     manifest,
@@ -240,7 +306,6 @@ class ImageArchiveTest(unittest.TestCase):
                 )
                 state.mark_running(manifest[0].source_key)
 
-            require_remote_inventory(contract, work_dir)
             with patch("image_archive.archive._s3_client", return_value=client):
                 first = run_archive(
                     contract,
@@ -258,22 +323,31 @@ class ImageArchiveTest(unittest.TestCase):
                 )
 
             self.assertEqual(first.recovered_running, 1)
+            self.assertEqual(first.selected, 1)
             self.assertEqual(first.verified, 1)
             self.assertEqual(resumed.selected, 0)
+            self.assertEqual(resumed.verified, 0)
+            self.assertEqual(resumed.recovered_running, 0)
             self.assertEqual(client.downloads, 1)
             progress = state_report(state_path)
             self.assertEqual(progress["counts"]["verified"], 1)
+            self.assertEqual(progress["counts"]["unresolved"], 0)
+            self.assertEqual(
+                progress["manifest_binding"]["artifact_sha256"],
+                contract.inventory.manifest_sha256,
+            )
 
             report_path = work_dir / "validation.json"
             valid = validate_archive(
                 contract,
                 inventory_path=inventory_path,
-                rejected_path=work_dir / "rejected.parquet",
+                rejected_path=rejected_path,
                 state_path=state_path,
                 workers=1,
                 report_path=report_path,
             )
             self.assertTrue(valid.complete)
+            self.assertTrue(valid.audit_passed)
             self.assertTrue(json.loads(report_path.read_text())["complete"])
 
             output = contract.destination.root / manifest[0].destination_relative
@@ -282,7 +356,7 @@ class ImageArchiveTest(unittest.TestCase):
                 validate_archive(
                     contract,
                     inventory_path=inventory_path,
-                    rejected_path=work_dir / "rejected.parquet",
+                    rejected_path=rejected_path,
                     state_path=state_path,
                     workers=1,
                 ).complete,
