@@ -1,14 +1,38 @@
-# Adapt the JPEG XL archive to another Cell Painting dataset
+# JPEG XL image archive
 
-This is the agent-facing runbook for adapting the existing archive engine to one unfamiliar Cell Painting dataset.
+## What this directory is
+
+The original Cell Painting images used by this project are TIFF files in the public [Cell Painting Gallery](https://github.com/broadinstitute/cellpainting-gallery).
+This directory is storage infrastructure, not part of the phenotype-analysis pipeline.
+It was built to convert the 2,017,182 selected Axiom OASIS TIFFs, totaling 17.8 TB, into a 323 GB local JPEG XL derivative while keeping every output traceable and every interrupted run resumable.
+The tooling and audit records remain here so that the completed archive can be inspected or reconstructed and the same narrow process can be applied to another compatible source dataset.
+For every selected TIFF, the archive engine downloads the source object, encodes one `.jxl` file, writes it atomically, and records durable progress and checksums in a schema-v4 SQLite ledger.
+An interrupted run can resume from that ledger, and a separate validation pass hashes and decodes every completed output.
+
+The JPEG XL derivative exists to make image browsing, visualization, and retrieval practical at a fraction of the source storage size.
+It is lossy: the current `jpegxl-d1-e5` tier uses JPEG XL distance 1.0 and effort 5.
+The original TIFFs remain the scientific source of truth, and this workflow makes no claim of biological equivalence.
+
+This directory has two entry points:
+
+- To understand or exactly reconstruct the completed Axiom OASIS archive, read [axiom/README.md](axiom/README.md).
+- To archive another compatible Cell Painting dataset with the existing engine, continue with the adaptation runbook below.
+
+The files are organized by ownership:
+
+- `python -m image_archive`, implemented by the Python modules in this directory, is the archive CLI for conversion, resumable state, status, and validation.
+- `axiom/` contains the pinned Axiom source contract and its exact reconstruction instructions.
+- `tests/` contains focused engine and receipt tests.
+- `deploy/` contains the optional Axiom systemd service used for the completed deployment.
+- `records/` contains the immutable receipt for the historical Axiom run.
+
+## Adapt the JPEG XL archive to another Cell Painting dataset
+
+The remainder of this document is the agent-facing runbook for adapting the existing archive engine to one unfamiliar Cell Painting dataset.
 Run every command from a clean isolated checkout and stop at the first failed assertion.
 The only reusable handoff is a deterministic post-preflight `inventory.parquet`, pinned contract, rejected-row artifact, and `summary.json` remote-preflight result.
 Source discovery and normalization remain direct dataset-specific code.
 The archive, resume, status, validation, locking, atomic-write, circuit-breaker, and schema-v4 ledger paths remain unchanged.
-
-The source TIFFs remain the source of truth.
-The current `jpegxl-d1-e5` derivative is lossy JPEG XL at distance 1.0 and effort 5.
-It is for browsing, visualization, and retrieval, and this workflow makes no claim of biological equivalence.
 
 The exact completed Axiom reconstruction procedure is in [axiom/README.md](axiom/README.md).
 Four surfaces are Axiom-only: the CLI `DEFAULT_CONTRACT`, the six-column `inventory` reference compiler, the optional systemd service, and `verify-receipt`.
