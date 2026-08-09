@@ -49,7 +49,7 @@ direnv exec . pixi run -e images python -m unittest discover -s image_archive/te
 ## Reuse
 
 The runtime modules in `image_archive/` are the dataset-agnostic tool; `image_archive/axiom/` is one worked instance of it.
-The co-located test suite covers both generic runtime behavior and the tracked Axiom contract, so reuse only the generic tests unchanged and adapt the contract tests for the new dataset.
+The focused test suite runs the whole workflow on a tiny non-OASIS fixture and checks the immutable OASIS record.
 For another dataset with the same six-column Axiom index schema, create a sibling directory such as `image_archive/<dataset>/`, copy `source.toml` into it, and change the index identity, S3 namespace, expected counts, batches, channels, codec settings, destination root, and object template.
 Run `inventory` to build the canonical manifest, record its inventory and rejected-row SHA-256 values in the contract, and then run `archive`.
 The conversion engine consumes only the canonical manifest columns and the contract, so image dimensions and dataset names are not compiled into the runtime.
@@ -68,7 +68,8 @@ The inventory command is the preflight: it verifies `image_archive/axiom/source.
 It paginates the four public S3 batch prefixes without downloading TIFF pixels and records size, ETag, last-modified time, storage class, and version ID where available.
 Missing indexed objects fail the preflight.
 Prefix-extra objects are preserved in a separate report and never added silently to the pinned-index scope.
-The final enriched inventory and rejected-row artifact are SHA-256 pinned in `image_archive/axiom/source.toml`, and every generated preflight artifact is attested in the self-verifying summary.
+The final enriched inventory and rejected-row artifact are SHA-256 pinned in `image_archive/axiom/source.toml`.
+The summary reports remote reconciliation, while the two contract pins and the ledger manifest binding protect the build scope directly.
 It must not download any source TIFF or write any JPEG XL object.
 
 After reviewing the preflight report and confirming storage registration, start or resume the archive explicitly:
@@ -82,9 +83,6 @@ direnv exec . pixi run -e images python -m image_archive archive \
   --max-consecutive-failures 32
 ```
 
-For an engineering smoke run, add `--limit 6`, then audit only the current verified subset with `validate --verified-only`.
-The subset audit exits successfully when every currently verified object passes, while its `complete` field remains false until the full contracted archive is present.
-
 Each selected TIFF is downloaded, checked against its pinned size, ETag, and version ID when available, decoded as one 2D uint16 plane, encoded, decoded again at the same shape and dtype, and promoted through an atomic sibling write.
 The ledger stores full source and output SHA-256 evidence and retries failures up to five times in the same invocation.
 The run stops scheduling new images after 32 consecutive failed conversion attempts, leaving untouched rows pending instead of repeating a systemic storage, codec, or network failure across the full inventory.
@@ -95,7 +93,7 @@ The inventory, archive, and validation workflows share one destination-scoped ex
 After correcting the cause of a terminal error, resume with a cumulative attempt ceiling above the recorded count, for example `archive --max-attempts 10` after the default five attempts are exhausted.
 Do not edit or delete ledger rows to force a retry.
 
-After the smoke audit passes, install the tracked user service from the canonical repository checkout:
+For an unattended full build, install the tracked user service from the canonical repository checkout:
 
 ```bash
 mkdir -p ~/.config/systemd/user
@@ -124,7 +122,8 @@ direnv exec . pixi run -e images python -m image_archive validate \
 
 Conversion is complete only when all 2,017,182 complete unique TIFF URIs have verified JPEG XL objects and all 2,160 incomplete index rows remain explicitly accounted for.
 The archive is fully validated only when the separate full `validate` command reports `complete: true` after hashing and decoding all 2,017,182 outputs.
-An existing output is reusable only after successful decode plus source/destination identity checks.
-Corrupt or partial outputs are replaced atomically and must never be accepted by an existence-only resume check.
+Resume trusts only rows that reached `verified` after source identity checks, JPEG XL decoding, atomic promotion, and an on-disk output hash/decode check.
+It never treats bare file existence as completion.
+The full validator detects later corruption, and `archive --audit-verified` requeues invalid outputs for atomic replacement.
 Any unresolved transfer, encode, decode, contract, count, or completeness error produces a nonzero exit status and prevents a complete status.
 `status` reports durable ledger progress and is not an on-disk completeness gate; only the full `validate` command hashes and decodes every verified JPEG XL object.

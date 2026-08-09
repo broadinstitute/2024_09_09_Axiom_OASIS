@@ -12,7 +12,7 @@ from typing import Final
 
 from .archive import DEFAULT_MAX_CONSECUTIVE_FAILURES, print_json, run_archive, state_report, validate_archive
 from .contract import Contract, load_contract
-from .inventory import build_inventory, verify_inventory_artifacts
+from .inventory import build_inventory, require_remote_inventory
 from .io import atomic_write_json, ensure_group_directories, exclusive_workflow_lock
 
 DEFAULT_CONTRACT: Final = Path("image_archive/axiom/source.toml")
@@ -54,7 +54,6 @@ def _parser() -> argparse.ArgumentParser:
         default=DEFAULT_MAX_CONSECUTIVE_FAILURES,
         help="stop scheduling after this many consecutive failed conversion attempts",
     )
-    archive.add_argument("--limit", type=int, help="convert at most this many pending images")
     archive.add_argument(
         "--audit-verified",
         action="store_true",
@@ -70,11 +69,6 @@ def _parser() -> argparse.ArgumentParser:
     _add_contract_and_work_dir(validate)
     validate.add_argument("--workers", type=int, default=_default_workers())
     validate.add_argument("--max-attempts", type=int, default=5)
-    validate.add_argument(
-        "--verified-only",
-        action="store_true",
-        help="engineering audit of current verified rows without claiming archive completeness",
-    )
     return parser
 
 
@@ -155,7 +149,7 @@ def _archive_command(parsed: argparse.Namespace, contract: Contract, work_dir: P
         ensure_group_directories(contract.destination.root, work_dir)
     with exclusive_workflow_lock(_workflow_lock_path(contract, work_dir), "archive"):
         _require_destination_storage(contract.destination.root)
-        _require_remote_preflight(contract, work_dir / "summary.json")
+        require_remote_inventory(contract, work_dir)
         max_in_flight = parsed.max_in_flight or parsed.workers * 2
         result = run_archive(
             contract,
@@ -165,13 +159,12 @@ def _archive_command(parsed: argparse.Namespace, contract: Contract, work_dir: P
             max_in_flight=max_in_flight,
             max_attempts=parsed.max_attempts,
             max_consecutive_failures=parsed.max_consecutive_failures,
-            limit=parsed.limit,
             audit_verified=parsed.audit_verified,
         )
     print_json(result)
     if result.failed or result.state_counts["error"] or result.state_counts["running"]:
         return 1
-    if parsed.limit is None and result.state_counts["unresolved"]:
+    if result.state_counts["unresolved"]:
         return 1
     return 0
 
@@ -209,7 +202,7 @@ def _validate_command(parsed: argparse.Namespace, contract: Contract, work_dir: 
     _require_destination_storage(contract.destination.root)
     with exclusive_workflow_lock(_workflow_lock_path(contract, work_dir), "validate"):
         _require_destination_storage(contract.destination.root)
-        _require_remote_preflight(contract, work_dir / "summary.json")
+        require_remote_inventory(contract, work_dir)
         result = validate_archive(
             contract,
             inventory_path=work_dir / "inventory.parquet",
@@ -217,29 +210,10 @@ def _validate_command(parsed: argparse.Namespace, contract: Contract, work_dir: 
             state_path=work_dir / "state.sqlite3",
             workers=parsed.workers,
             max_attempts=parsed.max_attempts,
-            verified_only=parsed.verified_only,
             report_path=work_dir / "validation.json",
         )
     print_json(result)
-    passed = result.audit_passed if parsed.verified_only else result.complete
-    return 0 if passed else 1
-
-
-def _require_remote_preflight(contract: Contract, summary_path: Path) -> None:
-    if not summary_path.is_file():
-        raise FileNotFoundError(
-            f"metadata preflight is absent: {summary_path}; run inventory --remote-snapshot first",
-        )
-    summary = verify_inventory_artifacts(summary_path, contract)
-    remote = summary.get("remote_snapshot")
-    if not isinstance(remote, dict):
-        raise TypeError("summary lacks the required remote_snapshot result")
-    missing = remote.get("indexed_missing_count")
-    extra = remote.get("prefix_extra_count")
-    if missing != 0:
-        raise ValueError(f"remote snapshot is missing {missing!r} indexed source objects")
-    if isinstance(extra, bool) or not isinstance(extra, int) or extra < 0:
-        raise TypeError(f"invalid prefix_extra_count in remote snapshot: {extra!r}")
+    return 0 if result.complete else 1
 
 
 def _require_destination_storage(destination_root: Path) -> None:
