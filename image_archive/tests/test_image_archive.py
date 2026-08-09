@@ -31,7 +31,7 @@ from image_archive.contract import (
     SourceContract,
     load_contract,
 )
-from image_archive.inventory import build_inventory, require_remote_inventory
+from image_archive.inventory import InventoryValidationError, build_inventory, require_remote_inventory
 from image_archive.io import exclusive_workflow_lock, sha256_file
 from image_archive.state import ArchiveState, ManifestIdentity
 
@@ -204,6 +204,27 @@ def _inventory(root: Path, rows: int = 1) -> tuple[Contract, Path, _S3]:
 
 
 class ImageArchiveTest(unittest.TestCase):
+    def test_missing_source_rerun_replaces_successful_preflight(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            contract, work_dir, client = _inventory(root)
+            require_remote_inventory(contract, work_dir)
+            indexed_key = next(key for key in client.objects if key.endswith(".tiff"))
+            client.objects.pop(indexed_key)
+
+            with self.assertRaisesRegex(InventoryValidationError, "missing 1 indexed objects"):
+                build_inventory(
+                    contract,
+                    work_dir,
+                    index_path=root / "index.parquet",
+                    remote_snapshot=True,
+                    s3_client=client,
+                )
+            with self.assertRaisesRegex(InventoryValidationError, "missing indexed objects"):
+                require_remote_inventory(contract, work_dir)
+            summary = json.loads((work_dir / "summary.json").read_text())
+            self.assertEqual(summary["remote_snapshot"]["indexed_missing_count"], 1)
+
     def test_non_oasis_inventory_resume_report_validate_and_repair(self) -> None:
         with TemporaryDirectory() as directory:
             root = Path(directory)

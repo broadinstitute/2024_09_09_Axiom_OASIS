@@ -206,8 +206,6 @@ def build_inventory(
             how="left",
             validate="1:1",
         ).sort("batch", "plate", "well", "site", "channel_number", "source_uri")
-        if inventory.select(pl.col("source_size").is_null().any() | pl.col("etag").is_null().any()).item():
-            raise InventoryValidationError("remote metadata is incomplete for indexed objects")
         summary["artifacts"] = {
             **cast("dict[str, str]", summary["artifacts"]),
             "indexed_missing": "indexed_missing.parquet",
@@ -449,7 +447,7 @@ def _remote_summary(
     return {
         "indexed_missing_count": missing.height,
         "indexed_present_bytes": int(inventory["source_size"].sum() or 0),
-        "indexed_present_count": inventory.height,
+        "indexed_present_count": inventory["source_size"].count(),
         "object_count": remote.height,
         "other_extra_bytes": int(other["size"].sum() or 0),
         "other_extra_count": other.height,
