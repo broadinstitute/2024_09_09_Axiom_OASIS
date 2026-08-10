@@ -1,0 +1,30 @@
+{
+  "archive": "cpg0037-oasis-axiom-jpegxl-v1",
+  "biological_equivalence_assessed": false,
+  "codec": {
+    "bitspersample": 16,
+    "distance": 1.0,
+    "effort": 5,
+    "lossless": false,
+    "name": "jpegxl"
+  },
+  "completed_at_utc": "2026-08-05T21:09:07.153944Z",
+  "destination": "/work/datasets/cpg0037-oasis/axiom/images-jxl/v1",
+  "historical_implementation_commit": "ddf7422a9f0d51c034386e2514258a9b9b471e2c",
+  "manifest": {
+    "rows": 2017182,
+    "sha256": "b8c20a37213831b55161a8ed9fe0a1c60522c8951f2b5e19713c7105c8200381"
+  },
+  "result": {
+    "output_bytes": 323337920405,
+    "source_bytes": 17825492086890,
+    "verified": 2017182
+  },
+  "source": "s3://cellpainting-gallery/cpg0037-oasis/axiom/images",
+  "validation": {
+    "checked": 2017182,
+    "complete": true,
+    "invalid": 0,
+    "report_sha256": "83ad5f170295039102fe619c6108c7f76c70eede2678baf1b391513b3e4cb457"
+  }
+}
