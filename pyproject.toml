@@ -16,6 +16,11 @@ markers = [
     "serial",
 ]
 
+[tool.pyright]
+pythonVersion = "3.11"
+venvPath = ".pixi/envs"
+venv = "images"
+
 [tool.ruff.lint]
 select = ["ALL"]
 

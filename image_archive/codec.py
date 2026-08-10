@@ -1,5 +1,6 @@
-# ruff: noqa: CPY001, EM101, EM102, TRY003, TRY301
-"""Strict TIFF decoding and JPEG XL encoding for the image archive."""
+# Copyright (c) 2026 Broad Institute.
+# ruff: noqa: EM101, EM102, TRY003, TRY301
+"""Decode one TIFF plane and encode one fixed JPEG XL derivative."""
 
 from __future__ import annotations
 
@@ -13,14 +14,14 @@ import tifffile
 if TYPE_CHECKING:
     from numpy.typing import DTypeLike, NDArray
 
-from image_archive.contract import CodecContract
-
 IMAGE_DIMENSIONS: Final = 2
 UINT16_BYTES: Final = 2
+JPEGXL_DISTANCE: Final = 1.0
+JPEGXL_EFFORT: Final = 5
 
 
 class CodecError(ValueError):
-    """Raised when an input or output violates the archive image contract."""
+    """Raised when an input or output is not one 2D uint16 image."""
 
 
 def _shape(expected_shape: tuple[int, int]) -> tuple[int, int]:
@@ -51,18 +52,7 @@ def _payload(data: bytes, label: str) -> bytes:
     return data
 
 
-def _codec(codec: CodecContract) -> CodecContract:
-    if not isinstance(codec, CodecContract):
-        raise CodecError("codec must be a CodecContract")
-    if codec.name != "jpegxl":
-        raise CodecError("invalid JPEG XL codec settings")
-    return codec
-
-
-def decode_tiff(
-    data: bytes,
-    expected_shape: tuple[int, int] | None = None,
-) -> NDArray[np.uint16]:
+def decode_tiff(data: bytes, expected_shape: tuple[int, int] | None = None) -> NDArray[np.uint16]:
     """Decode exactly one 2D uint16 TIFF plane."""
     payload = _payload(data, "TIFF")
     shape = _shape(expected_shape) if expected_shape is not None else None
@@ -78,18 +68,17 @@ def decode_tiff(
     return _plane(array, shape)
 
 
-def encode_jxl(array: NDArray[np.generic], codec: CodecContract) -> bytes:
-    """Encode one 2D uint16 plane as the pinned standard JPEG XL codestream."""
+def encode_jxl(array: NDArray[np.generic]) -> bytes:
+    """Encode one 2D uint16 plane at distance 1 and effort 5."""
     plane = _plane(array, None)
-    settings = _codec(codec)
     if not imagecodecs.JPEGXL.available:
         raise CodecError("imagecodecs JPEG XL support is unavailable")
     try:
         encoded = imagecodecs.jpegxl_encode(
             plane,
-            lossless=settings.lossless,
-            distance=settings.distance,
-            effort=settings.effort,
+            lossless=False,
+            distance=JPEGXL_DISTANCE,
+            effort=JPEGXL_EFFORT,
             bitspersample=16,
             usecontainer=False,
             numthreads=1,
@@ -118,24 +107,26 @@ def decode_jxl(data: bytes) -> NDArray[np.uint16]:
 
 def verify_jxl(
     data: bytes,
-    expected_shape: tuple[int, int],
-    expected_dtype: DTypeLike,
+    expected_shape: tuple[int, int] | None = None,
+    expected_dtype: DTypeLike | None = None,
 ) -> NDArray[np.uint16]:
-    """Decode a JPEG XL codestream and require the expected shape and dtype."""
-    shape = _shape(expected_shape)
-    try:
-        dtype = np.dtype(expected_dtype)
-    except (TypeError, ValueError) as error:
-        raise CodecError(f"invalid expected dtype: {expected_dtype!r}") from error
+    """Decode a JPEG XL and optionally require its shape and dtype."""
     array = decode_jxl(data)
-    if tuple(array.shape) != shape:
-        raise CodecError(f"expected JPEG XL shape {shape}, got {array.shape}")
-    if array.dtype != dtype:
-        raise CodecError(f"expected JPEG XL dtype {dtype}, got {array.dtype}")
+    if expected_shape is not None and tuple(array.shape) != _shape(expected_shape):
+        raise CodecError(f"expected JPEG XL shape {expected_shape}, got {array.shape}")
+    if expected_dtype is not None:
+        try:
+            dtype = np.dtype(expected_dtype)
+        except (TypeError, ValueError) as error:
+            raise CodecError(f"invalid expected dtype: {expected_dtype!r}") from error
+        if array.dtype != dtype:
+            raise CodecError(f"expected JPEG XL dtype {dtype}, got {array.dtype}")
     return array
 
 
 __all__ = [
+    "JPEGXL_DISTANCE",
+    "JPEGXL_EFFORT",
     "CodecError",
     "decode_jxl",
     "decode_tiff",

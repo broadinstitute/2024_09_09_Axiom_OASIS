@@ -18,7 +18,7 @@
 ##     manuscript_notebooks/SI_compare_processing.ipynb
 ##     other_notebooks/05_compare_pods_transforms.ipynb
 ##
-##   images     JPEG XL archive conversion, indexing, and validation
+##   images     TIFF-to-JPEG-XL conversion and validation
 ##
 ## This is a defect in the published repo, not a packaging preference: the
 ## pinned polars==0.20.0 in requirements.txt cannot run the four notebooks in
@@ -138,8 +138,6 @@ numpy = "==1.26.4"
 tifffile = "==2026.3.3"
 boto3 = "==1.43.64"
 botocore = "==1.43.64"
-polars = "==1.43.2"
-pyarrow = "==25.0.0"
 pytest = "==9.1.1"
 ruff = "==0.16.1"
 pyright = { version = "==1.1.411", extras = ["nodejs"] }
