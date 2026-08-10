@@ -19,9 +19,10 @@ An agent needs only `SOURCE_ROOT` and `OUTPUT_ROOT` to run a complete conversion
    Include every source TIFF once, mirror its path relative to `SOURCE_ROOT`, replace only its suffix with `.jxl`, sort by `destination_relative`, and reject collisions or unsafe paths.
 4. Use the existing locked converter without adding dependencies, tracked dataset adapters, frameworks, or workflow code.
    Proceed autonomously through conversion and full verification, resuming an interruption with the identical manifest.
-5. Accept the run only when conversion reports `complete=true` and `failed=0`, verification reports `complete=true` and `invalid=0`, and `checked` equals the manifest row count.
-6. Report the two roots; manifest path, count, and SHA-256; source and output bytes and compression ratio; conversion and verification counts; and paths to `manifest.tsv`, `jxl-run.json`, and `jxl-validation.json`.
-   State that verification proves decodable 2D uint16 JPEG XL outputs, not losslessness or biological equivalence.
+5. Run the deterministic 64-image quality sample after full verification.
+   Accept the run only when conversion, verification, and quality each report `complete=true`; conversion has zero failures; verification and quality have zero invalid rows; and full verification checked every manifest row.
+6. Report the two roots; manifest path, count, and SHA-256; source and output bytes and compression ratio; conversion and verification counts; quality metric medians and worst rows; and paths to `manifest.tsv`, `jxl-run.json`, `jxl-validation.json`, and `jxl-quality.json`.
+   State that full verification proves decodable 2D uint16 outputs and the sampled rate-distortion metrics measure intrinsic fidelity, not losslessness or biological equivalence.
 
 Stop before conversion only when the source scope, image compatibility, destination ownership, or safe resume state is unresolved.
 
@@ -82,6 +83,24 @@ direnv exec . pixi run -e images python -m image_archive verify \
 
 Success requires one decodable 2D uint16 JPEG XL for every manifest row.
 The command writes `jxl-validation.json` under the output root.
+
+## Measure quality
+
+After full verification, compare a deterministic sample with its source TIFFs:
+
+```bash
+direnv exec . pixi run -e images python -m image_archive.quality \
+  --manifest /absolute/path/images.tsv \
+  --output-root /absolute/path/images-jxl \
+  --sample-size 64
+```
+
+The sample contains the rows with the lowest SHA-256 ranks over `source_uri`, a NUL byte, and `destination_relative`.
+The command performs no encoding and writes only `jxl-quality.json`.
+It reports robust normalized RMSE, 16-bit PSNR, decoded-to-source Tenengrad edge-energy ratio, and empirical conditional intensity entropy in bits per pixel, together with the median and worst row for each metric.
+Sources and decoded images are streamed and discarded.
+`complete=true` means every selected pair was measured; it does not impose a universal biological-quality threshold.
+Lower error and entropy, higher PSNR, and a Tenengrad ratio closer to 1 indicate better fidelity.
 
 ## Test
 

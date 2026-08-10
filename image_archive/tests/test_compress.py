@@ -13,10 +13,21 @@ import tifffile
 
 from image_archive.codec import decode_jxl
 from image_archive.compress import convert_manifest, iter_manifest, main, verify_manifest
+from image_archive.quality import _conditional_entropy, _metrics, evaluate
+from image_archive.quality import main as quality_main
 
 
 def _tiff(path: Path, value: int) -> bytes:
     array = np.full((8, 10), value, dtype=np.uint16)
+    stream = io.BytesIO()
+    tifffile.imwrite(stream, array)
+    payload = stream.getvalue()
+    path.write_bytes(payload)
+    return payload
+
+
+def _random_tiff(path: Path, seed: int) -> bytes:
+    array = np.random.default_rng(seed).integers(0, 65536, size=(64, 80), dtype=np.uint16)
     stream = io.BytesIO()
     tifffile.imwrite(stream, array)
     payload = stream.getvalue()
@@ -135,6 +146,54 @@ def test_verify_reports_corrupt_output(tmp_path: Path) -> None:
     assert not result.complete
     assert result.checked == 0
     assert result.invalid == 1
+
+
+def test_quality_uses_deterministic_source_bound_sample(tmp_path: Path) -> None:
+    source_one = tmp_path / "one.tif"
+    source_two = tmp_path / "two.tif"
+    _random_tiff(source_one, 1)
+    _random_tiff(source_two, 2)
+    manifest = _manifest(
+        tmp_path / "images.tsv",
+        [(source_one, "one.jxl"), (source_two, "two.jxl")],
+    )
+    output = tmp_path / "output"
+    assert convert_manifest(manifest, output, workers=1).complete
+
+    first = evaluate(manifest, output, sample_size=1)["result"]
+    second = evaluate(manifest, output, sample_size=1)["result"]
+
+    assert first["complete"]
+    assert first["total"] == 2
+    assert first["checked"] == 1
+    assert first["invalid"] == 0
+    assert first["sample_sha256"] == second["sample_sha256"]
+    assert set(first["metrics"]) == {
+        "conditional_entropy_bits_per_pixel",
+        "psnr_db",
+        "robust_nrmse",
+        "tenengrad_ratio",
+    }
+    assert (
+        quality_main(
+            ["--manifest", str(manifest), "--output-root", str(output), "--sample-size", "1"],
+        )
+        == 0
+    )
+    assert (output / "jxl-quality.json").is_file()
+
+
+def test_quality_metrics_have_known_limits() -> None:
+    source = np.arange(64, dtype=np.uint16).reshape(8, 8)
+    lossless = _metrics(source, source)
+    assert lossless["robust_nrmse"] == 0
+    assert lossless["psnr_db"] is None
+    assert lossless["tenengrad_ratio"] == pytest.approx(1)
+    assert lossless["conditional_entropy_bits_per_pixel"] == 0
+
+    ambiguous_source = np.array([[0, 1], [0, 1]], dtype=np.uint16)
+    ambiguous_output = np.zeros_like(ambiguous_source)
+    assert _conditional_entropy(ambiguous_source, ambiguous_output) == pytest.approx(1)
 
 
 def test_cli_writes_small_run_records(tmp_path: Path) -> None:
