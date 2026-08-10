@@ -12,8 +12,8 @@ import pytest
 import tifffile
 
 from image_archive.codec import decode_jxl
-from image_archive.compress import convert_manifest, iter_manifest, main, verify_manifest
-from image_archive.quality import _conditional_entropy, _metrics, evaluate
+from image_archive.compress import ManifestRow, convert_manifest, iter_manifest, main, verify_manifest
+from image_archive.quality import _distortion, _sample, _summary, evaluate
 from image_archive.quality import main as quality_main
 
 
@@ -160,20 +160,15 @@ def test_quality_uses_deterministic_source_bound_sample(tmp_path: Path) -> None:
     output = tmp_path / "output"
     assert convert_manifest(manifest, output, workers=1).complete
 
-    first = evaluate(manifest, output, sample_size=1)["result"]
-    second = evaluate(manifest, output, sample_size=1)["result"]
+    first = evaluate(manifest, output, sample_size=1)
+    second = evaluate(manifest, output, sample_size=1)
 
-    assert first["complete"]
-    assert first["total"] == 2
-    assert first["checked"] == 1
-    assert first["invalid"] == 0
-    assert first["sample_sha256"] == second["sample_sha256"]
-    assert set(first["metrics"]) == {
-        "conditional_entropy_bits_per_pixel",
-        "psnr_db",
-        "robust_nrmse",
-        "tenengrad_ratio",
-    }
+    assert first["manifest"]["rows"] == 2
+    assert first["sample"]["rows"] == 1
+    assert first["sample"]["sha256"] == second["sample"]["sha256"]
+    assert first["sample"]["source_content_sha256"] == second["sample"]["source_content_sha256"]
+    assert first["sample"]["output_content_sha256"] == second["sample"]["output_content_sha256"]
+    assert first["sample"]["rmse_over_p001_p999_span"]["defined"] == 1
     assert (
         quality_main(
             ["--manifest", str(manifest), "--output-root", str(output), "--sample-size", "1"],
@@ -185,15 +180,45 @@ def test_quality_uses_deterministic_source_bound_sample(tmp_path: Path) -> None:
 
 def test_quality_metrics_have_known_limits() -> None:
     source = np.arange(64, dtype=np.uint16).reshape(8, 8)
-    lossless = _metrics(source, source)
-    assert lossless["robust_nrmse"] == 0
-    assert lossless["psnr_db"] is None
-    assert lossless["tenengrad_ratio"] == pytest.approx(1)
-    assert lossless["conditional_entropy_bits_per_pixel"] == 0
+    assert _distortion(source, source) == 0
+    flat = np.zeros((8, 8), dtype=np.uint16)
+    assert _distortion(flat, flat) is None
 
-    ambiguous_source = np.array([[0, 1], [0, 1]], dtype=np.uint16)
-    ambiguous_output = np.zeros_like(ambiguous_source)
-    assert _conditional_entropy(ambiguous_source, ambiguous_output) == pytest.approx(1)
+
+def test_quality_selection_and_summary_are_exact(tmp_path: Path) -> None:
+    manifest = tmp_path / "fixed.tsv"
+    manifest.write_text(
+        "source_uri\tdestination_relative\n"
+        "s3://example/a.tif\tu.jxl\n"
+        "s3://example/a.tif\tv.jxl\n"
+        "s3://example/a.tif\ty.jxl\n",
+        encoding="utf-8",
+    )
+    rows, total = _sample(manifest, 1)
+    assert total == 3
+    assert rows[0].destination_relative == "y.jxl"
+
+    first = ManifestRow(2, "s3://example/a.tif", "a.jxl")
+    second = ManifestRow(3, "s3://example/b.tif", "b.jxl")
+    summary = _summary([(first, 0.1), (second, 0.2), (first, None)])
+    assert summary["defined"] == 2
+    assert summary["median"] == pytest.approx(0.15)
+    assert summary["worst"]["destination_relative"] == "b.jxl"
+
+
+def test_quality_rejects_empty_manifest_and_missing_output(tmp_path: Path) -> None:
+    output = tmp_path / "output"
+    output.mkdir()
+    empty = tmp_path / "empty.tsv"
+    empty.write_text("source_uri\tdestination_relative\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="no image rows"):
+        evaluate(empty, output)
+
+    source = tmp_path / "source.tif"
+    _random_tiff(source, 3)
+    manifest = _manifest(tmp_path / "missing.tsv", [(source, "missing.jxl")])
+    with pytest.raises(FileNotFoundError):
+        evaluate(manifest, output, sample_size=1)
 
 
 def test_cli_writes_small_run_records(tmp_path: Path) -> None:
