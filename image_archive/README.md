@@ -4,7 +4,9 @@
 
 The original Cell Painting images used by this project are TIFF files in the public [Cell Painting Gallery](https://github.com/broadinstitute/cellpainting-gallery).
 This directory is storage infrastructure, not part of the phenotype-analysis pipeline.
-It was built to convert the 2,017,182 selected Axiom OASIS TIFFs, totaling 17.8 TB, into a 323 GB local JPEG XL derivative while keeping every output traceable and every interrupted run resumable.
+`Axiom` here refers to Axiom Bio, the contributing institution identified by the `axiom` source segment in the Gallery path; it is not the name of the archive engine.
+The specific dataset analyzed by this repository contains primary human hepatocytes treated with compounds for the OASIS (Omics for Assessing Signatures for Integrated Safety) project and is published under `cpg0037-oasis/axiom/images/`.
+The completed archive was built for that dataset and converted its 2,017,182 selected TIFFs, totaling 17.8 TB, into a 323 GB local JPEG XL derivative while keeping every output traceable and every interrupted run resumable.
 The tooling and audit records remain here so that the completed archive can be inspected or reconstructed and the same narrow process can be applied to another compatible source dataset.
 For every selected TIFF, the archive engine downloads the source object, encodes one `.jxl` file, writes it atomically, and records durable progress and checksums in a schema-v4 SQLite ledger.
 An interrupted run can resume from that ledger, and a separate validation pass hashes and decodes every completed output.
@@ -25,6 +27,26 @@ The files are organized by ownership:
 - `tests/` contains focused engine and receipt tests.
 - `deploy/` contains the optional Axiom systemd service used for the completed deployment.
 - `records/` contains the immutable receipt for the historical Axiom run.
+
+## Use this with a coding agent
+
+Start a capable coding agent in a clean checkout of this repository, replace the dataset pointer below, and paste this prompt:
+
+```text
+Use this repository to archive the following Cell Painting dataset:
+
+<DATASET URL, IDENTIFIER, INDEX, OR S3 PREFIX>
+
+Read image_archive/README.md completely and follow its runbook.
+First inspect the source and determine whether it satisfies the supported boundary.
+If it does not, stop and explain why.
+If it does, implement the smallest dataset-specific normalization needed and carry the run through inventory, an intentional interruption and resume, status, a completed no-op, full validation, and immutable run evidence.
+
+In this repository, Axiom OASIS means the historical OASIS dataset contributed by Axiom Bio and stored at cpg0037-oasis/axiom/images/; it is neither the archive engine nor the new dataset.
+Preserve the reusable archive engine behavior and do not modify or invalidate the Axiom dataset's pinned contract, immutable receipt, completed outputs, or Axiom-only verification surfaces.
+Do not add dependencies, frameworks, registries, adapter layers, base classes, workflow machinery, compatibility shims, or speculative multi-dataset abstractions.
+Before expensive conversion, resolve the source scope, storage ownership, destination, and manifest pins; ask for direction if any of those require a user decision.
+```
 
 ## Adapt the JPEG XL archive to another Cell Painting dataset
 
