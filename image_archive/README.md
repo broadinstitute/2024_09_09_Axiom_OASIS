@@ -103,6 +103,7 @@ Each content digest hashes the path, a NUL byte, and the binary SHA-256 of its p
 Sources and decoded images are streamed and discarded.
 Receipt creation means every selected pair was measured; there is no universal biological-quality threshold.
 Lower distortion indicates better pixel fidelity.
+The ratio may be driven by larger absolute error or a narrower source intensity span, and its pooled median reflects whatever channel mixture the dataset-agnostic hash sample selects.
 
 ## Test
 
