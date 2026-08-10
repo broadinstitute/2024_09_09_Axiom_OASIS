@@ -6,7 +6,7 @@
 `1_snakemake/` owns the primary workflow, rules, configurations, and pipeline tests.
 `2_downstream_analysis/` contains manuscript and exploratory notebooks plus compiled results.
 `paper/` contains source publications, the target ledger, evidence, verification code, executable-paper tools, and paper tests.
-`image_archive/` is the small manifest-driven TIFF-to-JPEG-XL converter; `axiom-run.json` records the completed `cpg0037-oasis/axiom` dataset conversion.
+`image_archive/` is the small manifest-driven TIFF-to-JPEG-XL converter and includes a validated 1,000-row manifest sample from the `cpg0037-oasis/axiom` dataset.
 Tests live beside their subsystem under `1_snakemake/tests/`, `paper/tests/`, and `image_archive/tests/`.
 
 ## Build, Test, and Development Commands

@@ -1,0 +1,19 @@
+{
+  "codec": {
+    "bitspersample": 16,
+    "distance": 1.0,
+    "effort": 5,
+    "lossless": false,
+    "name": "jpegxl"
+  },
+  "result": {
+    "checked": 1000,
+    "complete": true,
+    "failures": [],
+    "interrupted": false,
+    "invalid": 0,
+    "manifest_sha256": "ef7310c3fe6d6f9031f2facf7c6190efe97fbc3d34d045218e017f07678bd803",
+    "output_bytes": 160998399,
+    "total": 1000
+  }
+}

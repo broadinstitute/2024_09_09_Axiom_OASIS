@@ -8,7 +8,7 @@ This repository contains the Axiom OASIS analysis, its paper reproduction record
 - `1_snakemake/` contains the primary analysis pipeline.
 - `2_downstream_analysis/` contains manuscript and exploratory notebooks plus compiled results.
 - `paper/` contains the published sources, target ledger, evidence, executable paper, and end-to-end reproduction workflow.
-- `image_archive/` contains the small manifest-driven TIFF-to-JPEG-XL converter and concise run record for the `cpg0037-oasis/axiom` dataset.
+- `image_archive/` contains the small manifest-driven TIFF-to-JPEG-XL converter and a validated 1,000-row manifest sample from the `cpg0037-oasis/axiom` dataset.
 
 ## Reproduction and archive entry points
 
