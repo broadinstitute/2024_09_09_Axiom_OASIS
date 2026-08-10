@@ -80,14 +80,15 @@ Do not add dependencies, frameworks, parser registries, adapter layers or protoc
 ## 1. Start from a clean isolated checkout
 
 Begin in a clean repository root and create a dedicated worktree and branch for this one adaptation.
-Choose a short stable dataset slug before running these commands:
+Choose a short stable lowercase Python package name for the dataset, using only letters, digits, and underscores and starting with a letter, such as `garcia_fossa_agnp`.
+Use that name as the dataset slug in every command below:
 
 ```bash
 set -euo pipefail
 test -f image_archive/axiom/source.toml
 test -z "$(git status --porcelain)"
-dataset_slug=replace_with_dataset_slug
-test "$dataset_slug" != replace_with_dataset_slug
+dataset_slug=replace_with_python_package_name
+test "$dataset_slug" != replace_with_python_package_name
 worktree_parent=/work/users/"$(id -un)"/worktrees
 install -d -m 0770 "$worktree_parent"
 worktree="$worktree_parent/2024_09_09_Axiom_OASIS-image-archive-$dataset_slug"
@@ -222,7 +223,8 @@ State that limitation in the ambiguity log and run record.
 
 ## 5. Implement one direct dataset normalizer
 
-In the isolated branch, add only the concrete files needed for the real dataset, normally a `source.toml`, one ordinary normalization script, and a short source README under `image_archive/<dataset_slug>/`.
+In the isolated branch, add only the concrete files needed for the real dataset, normally `__init__.py`, `source.toml`, one ordinary `prepare_manifest.py` normalization module, and a short source README under `image_archive/<dataset_slug>/`.
+Keep module import free of source, destination, or network side effects.
 Hard-code the reviewed source columns, URL expansion, channel mapping, path grammar, and selection rules in that script.
 Do not add dataset-name branches to `image_archive/inventory.py` and do not call its Axiom-only `build_inventory` compiler.
 
@@ -243,6 +245,15 @@ It must contain a `remote_snapshot` object with integer `indexed_missing_count` 
 Keep the separate prefix-extra artifact even when that count is zero.
 No failed rerun may leave an earlier zero-missing summary in place, because that stale summary could authorize `archive` or `validate` against mismatched artifacts.
 Every retained dataset normalizer must have a focused regression equivalent to `test_missing_source_rerun_replaces_successful_preflight`: create a successful preflight, rerun after one selected remote object is missing, require the rerun to fail, require `require_remote_inventory` to refuse the work directory, and assert that the replacement summary records the failure.
+
+Before bootstrapping artifacts, prove that the dataset module imports from the repository root through the locked environment:
+
+```bash
+test -f "image_archive/$dataset_slug/__init__.py"
+direnv exec . pixi run -e images python \
+  -m "image_archive.$dataset_slug.prepare_manifest" \
+  --help
+```
 
 Use no TIFF pixel downloads in this step.
 Keep the implementation small enough that another agent can compare every rule with the upstream index and object layout.
@@ -269,7 +280,7 @@ bootstrap_work="$qualification_root/bootstrap"
 test ! -e "$bootstrap_work"
 install -d -m 0770 "$bootstrap_work"
 direnv exec . pixi run -e images python \
-  "image_archive/$dataset_slug/prepare_manifest.py" \
+  -m "image_archive.$dataset_slug.prepare_manifest" \
   --contract "image_archive/$dataset_slug/source.toml" \
   --work-dir "$bootstrap_work" \
   --remote-snapshot
@@ -297,7 +308,7 @@ pinned_work="$qualification_root/pinned"
 test ! -e "$pinned_work"
 install -d -m 0770 "$pinned_work"
 direnv exec . pixi run -e images python \
-  "image_archive/$dataset_slug/prepare_manifest.py" \
+  -m "image_archive.$dataset_slug.prepare_manifest" \
   --contract "image_archive/$dataset_slug/source.toml" \
   --work-dir "$pinned_work" \
   --remote-snapshot
@@ -370,7 +381,7 @@ Run the exact pinned normalizer into the canonical work directory:
 
 ```bash
 direnv exec . pixi run -e images python \
-  "image_archive/$dataset_slug/prepare_manifest.py" \
+  -m "image_archive.$dataset_slug.prepare_manifest" \
   --contract "image_archive/$dataset_slug/source.toml" \
   --work-dir "$archive_work" \
   --remote-snapshot
