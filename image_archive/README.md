@@ -62,8 +62,8 @@ The command writes `jxl-validation.json` under the output root.
 direnv exec . pixi run -e images pytest -q image_archive/tests
 ```
 
-## Historical Axiom run
+## Completed `cpg0037-oasis/axiom` dataset run
 
-[`axiom-run.json`](axiom-run.json) is the concise historical record for the completed Axiom OASIS conversion.
+[`axiom-run.json`](axiom-run.json) records the completed TIFF-to-JPEG-XL conversion for the `cpg0037-oasis/axiom` dataset.
 The complete previous framework and immutable receipt remain available in Git at commit `2423d28`.
-The existing external archive is not modified by this simplification.
+The external JPEG XL archive for this dataset is not modified by this simplification.
