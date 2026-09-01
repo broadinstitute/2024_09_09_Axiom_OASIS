@@ -16,7 +16,7 @@ packaging==24.1
 parso==0.8.4
 pexpect==4.9.0
 pickleshare==0.7.5
-pip==26.1.2
+pip==26.2
 platformdirs==4.3.2
 psutil==6.0.0
 ptyprocess==0.7.0
